@@ -347,8 +347,7 @@ function selectDay(i){S.selDay=i;renderOggi();renderHeader();}
 function setDietKey(key){S.activeDietKey=key;renderOggi();}
 function setDietKey_A(){setDietKey('A');}
 function setDietKey_B(){setDietKey('B');}
-function goEditDietA(){setDietKey_A();switchTab('oggi',0);setNav(0);var c=el('mainContent');if(c)c.scrollTop=0;}
-function goEditDietB(){setDietKey_B();switchTab('oggi',0);setNav(0);var c=el('mainContent');if(c)c.scrollTop=0;}
+
 function getDateOfWeek(dayIdx,weekOffset){
   var d=new Date();
   var cur=d.getDay()===0?6:d.getDay()-1;
@@ -715,10 +714,17 @@ async function saveFood(){
     food={n:n,q:el('inQtyFree').value.trim()||'—',kcal:parseFloat(el('inKcal').value)||0,p:parseFloat(el('inProt').value)||0,c:parseFloat(el('inCarb').value)||0,fat:parseFloat(el('inFat').value)||0,fi:0};
   }
   var pat=ensureDieta(getPatientById(S.patientId));
-  var dietaKey=S.activeDietKey||'A';
-  var targetDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
-  targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
-  await updatePatient(pat);closeModal('modalFood');renderMeals();renderHeader();
+  if(S.editCtx.isAB){
+    // Salva nella dieta A o B
+    var tDieta=AB.editKey==='A'?pat.dietaA:pat.dietaB;
+    tDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
+    await updatePatient(pat);closeModal('modalFood');renderConfigAB();
+  } else {
+    var dietaKey=S.activeDietKey||'A';
+    var targetDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
+    targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
+    await updatePatient(pat);closeModal('modalFood');renderMeals();renderHeader();
+  }
   showToast('✅ '+food.n+' aggiunto!');
 }
 function openNote(dayIdx,pId,pNome){
@@ -731,11 +737,19 @@ function openNote(dayIdx,pId,pNome){
 async function saveNote(){
   var pat=ensureDieta(getPatientById(S.patientId));
   var txt=el('inNote').value.trim();
-  var dietaKey=S.activeDietKey||'A';
-  var tDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
-  if(txt)tDieta.giorni[S.editCtx.dayIdx].note[S.editCtx.pId]=txt;
-  else delete tDieta.giorni[S.editCtx.dayIdx].note[S.editCtx.pId];
-  await updatePatient(pat);closeModal('modalNote');renderMeals();showToast('📝 Nota salvata!');
+  if(S.editCtx.isAB){
+    var tDieta=AB.editKey==='A'?pat.dietaA:pat.dietaB;
+    if(txt)tDieta.giorni[S.editCtx.dayIdx].note[S.editCtx.pId]=txt;
+    else delete tDieta.giorni[S.editCtx.dayIdx].note[S.editCtx.pId];
+    await updatePatient(pat);closeModal('modalNote');renderConfigAB();
+  } else {
+    var dietaKey=S.activeDietKey||'A';
+    var tDieta2=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
+    if(txt)tDieta2.giorni[S.editCtx.dayIdx].note[S.editCtx.pId]=txt;
+    else delete tDieta2.giorni[S.editCtx.dayIdx].note[S.editCtx.pId];
+    await updatePatient(pat);closeModal('modalNote');renderMeals();
+  }
+  showToast('📝 Nota salvata!');
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
@@ -841,75 +855,193 @@ function toggleManual(){
 }
 
 // ── CONFIG DIETA A/B ─────────────────────────────────────────────────────────
+// Stato editor A/B
+var AB = { editKey: 'A', editDay: 0 };
+
 function renderConfigAB(){
   var pat=getPatientById(S.patientId);
   if(!pat){setHtml('tab-configAB','<div class="empty-state"><div class="empty-state-title">Nessun paziente selezionato</div></div>');return;}
   ensureDieta(pat);
   var cfg=pat.configAB||{enabled:false,startDate:'',durata:8};
-  var html='<div class="sec-title">Configurazione Dieta A/B</div>'
-    +'<div class="card">'
-    +'<div class="card-title">🔄 Settimane alternate A/B</div>'
-    +'<div class="card-desc">Attiva per creare due piani distinti (Dieta A e Dieta B) che si alternano settimana per settimana.</div>'
-    +'<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px">'
-    +'<input type="checkbox" id="abEnabled" '+(cfg.enabled?'checked':'')+' onchange="toggleAB()" style="width:18px;height:18px;accent-color:var(--purple)">'
-    +'<span style="font-size:14px;font-weight:700;color:var(--text)">Dieta A/B attiva</span>'
+  var html='';
+
+  // ── SEZIONE CONFIGURAZIONE ──
+  html+='<div class="card" style="margin-bottom:10px">'
+    +'<div class="card-title" style="margin-bottom:8px">⚙️ Impostazioni alternanza</div>'
+    +'<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px">'
+    +'<input type="checkbox" id="abEnabled" '+(cfg.enabled?'checked':'')+' onchange="toggleAB()" style="width:20px;height:20px;accent-color:var(--purple)">'
+    +'<div><div style="font-size:14px;font-weight:700;color:var(--text)">Attiva Dieta A/B</div>'
+    +'<div style="font-size:12px;color:var(--text-sec)">Settimane alternate: Sett.1→Dieta A, Sett.2→Dieta B...</div></div>'
     +'</label>'
     +'<div id="abOptions" style="'+(cfg.enabled?'':'display:none')+'">'
-    +'<label class="lbl">Data inizio alternanza</label>'
-    +'<input type="date" class="inp" id="abStartDate" value="'+(cfg.startDate||new Date().toISOString().split('T')[0])+'">'
-    +'<label class="lbl">Durata totale (numero settimane)</label>'
-    +'<select class="inp" id="abDurata"><option value="4"'+(cfg.durata==4?' selected':'')+'>4 settimane (2A + 2B)</option>'
-    +'<option value="8"'+(cfg.durata==8?' selected':'')+'>8 settimane (4A + 4B)</option>'
-    +'<option value="12"'+(cfg.durata==12?' selected':'')+'>12 settimane (6A + 6B)</option>'
-    +'<option value="16"'+(cfg.durata==16?' selected':'')+'>16 settimane (8A + 8B)</option>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+    +'<div><label class="lbl">Data inizio</label>'
+    +'<input type="date" class="inp" id="abStartDate" value="'+(cfg.startDate||new Date().toISOString().split('T')[0])+'" style="margin-bottom:0"></div>'
+    +'<div><label class="lbl">Durata</label>'
+    +'<select class="inp" id="abDurata" style="margin-bottom:0">'
+    +'<option value="4"'+(cfg.durata==4?' selected':'')+'>4 sett.</option>'
+    +'<option value="8"'+(cfg.durata==8?' selected':'')+'>8 sett.</option>'
+    +'<option value="12"'+(cfg.durata==12?' selected':'')+'>12 sett.</option>'
+    +'<option value="16"'+(cfg.durata==16?' selected':'')+'>16 sett.</option>'
     +'<option value="0"'+(cfg.durata==0?' selected':'')+'>Illimitata</option>'
-    +'</select>'
-    +'<div style="background:var(--purple-l);border-radius:var(--rs);padding:12px;margin-bottom:12px">'
-    +'<div style="font-size:13px;font-weight:700;color:var(--purple-d);margin-bottom:4px">Come funziona</div>'
-    +'<div style="font-size:12px;color:var(--purple-d);line-height:1.7">Settimana 1 → Dieta A<br>Settimana 2 → Dieta B<br>Settimana 3 → Dieta A<br>e così via…</div>'
+    +'</select></div></div>'
+    +'<button class="btn-full btn-prim purple" onclick="saveConfigAB()" style="margin-top:4px">💾 Salva impostazioni</button>'
     +'</div>'
-    +'<button class="btn-full btn-prim purple" onclick="saveConfigAB()">💾 Salva configurazione</button>'
-    +'</div>'
-    +'</div>'
-    html+='<div class="sec-title">Modifica piani</div>';
-  var borderA=S.activeDietKey==='A'?'2px solid var(--blue)':'0.5px solid var(--border)';
-  var borderB=S.activeDietKey==='B'?'2px solid var(--amber)':'0.5px solid var(--border)';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">'
-    +'<button style="background:var(--bg-card);border:'+borderA+';border-radius:var(--r);padding:18px 10px;cursor:pointer;width:100%;text-align:center" onclick="goEditDietA()">'
-    +'<div style="font-size:32px;margin-bottom:8px">📋</div>'
-    +'<div style="font-size:16px;font-weight:800;color:var(--blue)">Dieta A</div>'
-    +'<div style="font-size:11px;color:var(--text-sec);margin-top:4px">Settimane dispari</div>'
-    +'<div style="margin-top:10px;background:var(--blue);color:white;border-radius:var(--rs);padding:8px;font-size:13px;font-weight:700">✏️ Modifica</div>'
+    +'</div>';
+
+  // ── SEZIONE EDITOR DIETE ──
+  html+='<div class="sec-title">Crea e modifica i piani</div>';
+
+  // Switch A / B
+    // Pulsanti selezione Dieta A / B
+  var btnStyleA='flex:1;padding:14px;border-radius:var(--r);border:'+(AB.editKey==='A'?'2px solid var(--blue)':'1px solid var(--border)')+';background:'+(AB.editKey==='A'?'var(--blue-l)':'var(--bg-sec)')+';cursor:pointer';
+  var btnStyleB='flex:1;padding:14px;border-radius:var(--r);border:'+(AB.editKey==='B'?'2px solid var(--amber)':'1px solid var(--border)')+';background:'+(AB.editKey==='B'?'var(--amber-l)':'var(--bg-sec)')+';cursor:pointer';
+  html+='<div style="display:flex;gap:6px;margin-bottom:10px">'
+    +'<button onclick="setABKey_A()" style="'+btnStyleA+'">'
+    +'<div style="font-size:22px">📋</div>'
+    +'<div style="font-size:15px;font-weight:800;color:'+(AB.editKey==='A'?'var(--blue-d)':'var(--text-sec)')+'">Dieta A</div>'
+    +'<div style="font-size:11px;color:var(--text-sec)">Settimane dispari</div>'
     +'</button>'
-    +'<button style="background:var(--bg-card);border:'+borderB+';border-radius:var(--r);padding:18px 10px;cursor:pointer;width:100%;text-align:center" onclick="goEditDietB()">'
-    +'<div style="font-size:32px;margin-bottom:8px">📋</div>'
-    +'<div style="font-size:16px;font-weight:800;color:var(--amber-d)">Dieta B</div>'
-    +'<div style="font-size:11px;color:var(--text-sec);margin-top:4px">Settimane pari</div>'
-    +'<div style="margin-top:10px;background:var(--amber);color:white;border-radius:var(--rs);padding:8px;font-size:13px;font-weight:700">✏️ Modifica</div>'
+    +'<button onclick="setABKey_B()" style="'+btnStyleB+'">'
+    +'<div style="font-size:22px">📋</div>'
+    +'<div style="font-size:15px;font-weight:800;color:'+(AB.editKey==='B'?'var(--amber-d)':'var(--text-sec)')+'">Dieta B</div>'
+    +'<div style="font-size:11px;color:var(--text-sec)">Settimane pari</div>'
     +'</button>'
     +'</div>';
+  // Banner piano attivo
+  var planColor = AB.editKey==='A' ? 'var(--blue)' : 'var(--amber)';
+  var planBg = AB.editKey==='A' ? 'var(--blue-l)' : 'var(--amber-l)';
+  html+='<div style="background:'+planBg+';border-radius:var(--rs);padding:10px 14px;margin-bottom:10px;font-size:13px;font-weight:700;color:'+planColor+'">'
+    +'✏️ Stai modificando: Dieta '+AB.editKey+' — clicca un giorno e aggiungi gli alimenti'
+    +'</div>';
+
+  // Selettore giorni generici (senza date)
+  html+='<div class="day-sel" style="margin-bottom:10px">';
+  GG_E.forEach(function(g,i){
+    html+='<div class="day-btn'+(i===AB.editDay?' active':'')+'" onclick="setABDay('+i+')" style="flex-shrink:0">'
+      +'<span class="day-name">'+GG[i]+'</span>'
+      +'<span class="day-num" style="font-size:12px;margin-top:2px">'+g.slice(0,3)+'</span>'
+      +'</div>';
+  });
+  html+='</div>';
+
+  // Pasti del giorno selezionato
+  var dieta = AB.editKey==='A' ? pat.dietaA : pat.dietaB;
+  var g = (dieta&&dieta.giorni&&dieta.giorni[AB.editDay])||{};
+  var note = g.note||{};
+
+  PASTI.forEach(function(pm){
+    var cibi=g[pm.id]||[];
+    var kcal=r(cibi.reduce(function(s,f){return s+(f.kcal||0);},0));
+    html+='<div class="meal-card" style="margin-bottom:8px">'
+      +'<div class="meal-hdr">'
+      +'<div class="meal-icon-wrap">'
+      +'<div class="meal-icon" style="background:'+pm.bg+'">'+pm.emoji+'</div>'
+      +'<div><div class="meal-name-txt">'+pm.nome+'</div><div class="meal-time">'+pm.ora+'</div></div>'
+      +'</div>'
+      +'<span class="kcal-badge chip chip-p" style="background:var(--blue-l);color:var(--blue-d);font-size:12px;padding:4px 9px;border-radius:20px">'+kcal+' kcal</span>'
+      +'</div>';
+    if(cibi.length){
+      html+='<div class="food-list">';
+      cibi.forEach(function(food,fi){
+        html+='<div class="food-row">'
+          +'<span class="food-name">'+food.n+'</span>'
+          +'<span class="food-qty">'+(food.q||'—')+'</span>'
+          +'<span class="food-kcal-sm">'+r(food.kcal||0)+' kcal</span>'
+          +'<button class="food-del" onclick="delABFood(\''+pm.id+'\','+fi+')">✕</button>'
+          +'</div>';
+      });
+      html+='</div>';
+      var pp=r(cibi.reduce(function(s,f){return s+(f.p||0);},0),1);
+      var cc=r(cibi.reduce(function(s,f){return s+(f.c||0);},0),1);
+      var ff=r(cibi.reduce(function(s,f){return s+(f.fat||f.f||0);},0),1);
+      html+='<div class="macros-row"><span class="chip chip-p">P '+pp+'g</span><span class="chip chip-c">C '+cc+'g</span><span class="chip chip-f">G '+ff+'g</span></div>';
+    } else {
+      html+='<div style="color:var(--text-sec);font-size:13px;margin-bottom:8px">Nessun alimento — aggiungine uno</div>';
+    }
+    if(note[pm.id]) html+='<div class="note-box"><div class="note-text">📝 '+note[pm.id]+'</div></div>';
+    html+='<div class="add-row">'
+      +'<button class="btn-add" onclick="openABAddFood(\''+pm.id+'\',\''+pm.nome+'\')">'+'＋ Aggiungi alimento</button>'
+      +'<button class="btn-note" onclick="openABNote(\''+pm.id+'\',\''+pm.nome+'\')">'+'📝</button>'
+      +'</div>'
+      +'</div>';
+  });
+
+  // Riepilogo giornaliero
+  var totDay = {kcal:0,p:0,c:0,f:0};
+  PASTI.forEach(function(pm){
+    (g[pm.id]||[]).forEach(function(food){
+      totDay.kcal+=food.kcal||0;totDay.p+=food.p||0;
+      totDay.c+=food.c||0;totDay.f+=food.fat||food.f||0;
+    });
+  });
+  if(totDay.kcal>0){
+    html+='<div class="tip-card" style="margin-top:4px">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--blue-d)">📊 '+GG_E[AB.editDay]+' — Totale Dieta '+AB.editKey+'</div>'
+      +'<div style="font-size:13px;color:var(--blue);margin-top:4px">'
+      +r(totDay.kcal)+' kcal &nbsp;|&nbsp; P '+r(totDay.p,1)+'g &nbsp;|&nbsp; C '+r(totDay.c,1)+'g &nbsp;|&nbsp; G '+r(totDay.f,1)+'g'
+      +'</div></div>';
+  }
+
+  html+='<div style="height:20px"></div>';
   setHtml('tab-configAB',html);
-  // Scroll to top of content after render
-  var cont=el('mainContent');if(cont)cont.scrollTop=0;
 }
+
+function setABKey(key){AB.editKey=key;renderConfigAB();}
+function setABKey_A(){setABKey('A');}
+function setABKey_B(){setABKey('B');}
+function setABDay(i){AB.editDay=i;renderConfigAB();}
+
+function openABAddFood(pId,pNome){
+  S.editCtx={dayIdx:AB.editDay,pId:pId,isAB:true};
+  el('modalFoodTitle').textContent='➕ Dieta '+AB.editKey+' — '+GG_E[AB.editDay]+' — '+pNome;
+  el('searchInp').value='';el('searchClear').style.display='none';
+  closeSugg();
+  el('selFoodBox').classList.remove('vis');
+  el('qtySection').style.display='none';
+  el('manualSec').classList.remove('open');
+  el('manualToggle').textContent='✏️ Inserimento manuale (alimento non trovato)';
+  ['inName','inQtyFree','inKcal','inProt','inCarb','inFat'].forEach(function(id){el(id).value='';});
+  S.selFood=null;S.manualOpen=false;
+  openModal('modalFood');
+  setTimeout(function(){el('searchInp').focus();},350);
+}
+
+function openABNote(pId,pNome){
+  S.editCtx={dayIdx:AB.editDay,pId:pId,isAB:true};
+  el('modalNoteTitle').textContent='📝 Dieta '+AB.editKey+' — '+GG_E[AB.editDay]+' — '+pNome;
+  var pat=getPatientById(S.patientId);
+  ensureDieta(pat);
+  var dieta=AB.editKey==='A'?pat.dietaA:pat.dietaB;
+  el('inNote').value=(((dieta.giorni||{})[AB.editDay]||{}).note||{})[pId]||'';
+  openModal('modalNote');
+}
+
+function delABFood(pId,fi){
+  var pat=ensureDieta(getPatientById(S.patientId));
+  var dieta=AB.editKey==='A'?pat.dietaA:pat.dietaB;
+  if(dieta.giorni[AB.editDay]&&dieta.giorni[AB.editDay][pId])
+    dieta.giorni[AB.editDay][pId].splice(fi,1);
+  updatePatient(pat);
+  renderConfigAB();
+}
+
 function toggleAB(){
-  var enabled=el('abEnabled').checked;
-  el('abOptions').style.display=enabled?'block':'none';
+  el('abOptions').style.display=el('abEnabled').checked?'block':'none';
 }
+
 async function saveConfigAB(){
   var pat=ensureDieta(getPatientById(S.patientId));
-  var enabled=el('abEnabled').checked;
   pat.configAB={
-    enabled:enabled,
+    enabled:el('abEnabled').checked,
     startDate:el('abStartDate').value,
     durata:parseInt(el('abDurata').value)||8
   };
   await updatePatient(pat);
-  showToast('✅ Configurazione A/B salvata!');
-  renderConfigAB();
+  showToast('✅ Impostazioni salvate!');
 }
 
-// ── STAMPA ────────────────────────────────────────────────────────────────────
+// ── STAMPA // ── STAMPA ────────────────────────────────────────────────────────────────────
 function printDieta(patId){
   var pat=getPatientById(patId);if(!pat){showToast('⚠️ Paziente non trovato');return;}
   var giorni=(pat.dieta&&pat.dieta.giorni)||{};
