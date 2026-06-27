@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Test</title></head>
+<body>
+<h2 id="status">Caricamento...</h2>
+<button onclick="document.getElementById('status').textContent = 'CLICK FUNZIONA!'">Clicca qui</button>
+<div id="log" style="margin-top:20px;font-family:monospace;font-size:12px"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+function log(msg, ok) {
+  document.getElementById('log').innerHTML += '<div style="color:'+(ok?'green':'red')+'">'+msg+'</div>';
+}
+
+document.getElementById('status').textContent = 'Pagina caricata';
+
+// Test 1: click funziona?
+log('✅ Script eseguito', true);
+
+// Test 2: Firebase disponibile?
+if (typeof firebase !== 'undefined') {
+  log('✅ Firebase caricato', true);
+  try {
+    const app = firebase.initializeApp({
+      apiKey: "AIzaSyARCMANUUJY3oCbKwR0ii9UeJSu-0pl8w8",
+      authDomain: "app-dieta-c4415.firebaseapp.com",
+      projectId: "app-dieta-c4415",
+    });
+    log('✅ Firebase inizializzato', true);
+    const db = firebase.firestore();
+    log('✅ Firestore pronto', true);
+  } catch(e) {
+    log('❌ Errore Firebase: ' + e.message, false);
+  }
+} else {
+  log('❌ Firebase NON caricato', false);
+}
+
+window.onerror = function(msg, src, line) {
+  log('❌ JS ERROR: ' + msg + ' (riga ' + line + ')', false);
+};
+</script>
+</body>
+</html>
