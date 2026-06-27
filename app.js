@@ -1043,45 +1043,117 @@ async function saveConfigAB(){
 
 // ── STAMPA // ── STAMPA ────────────────────────────────────────────────────────────────────
 function printDieta(patId){
-  var pat=getPatientById(patId);if(!pat){showToast('⚠️ Paziente non trovato');return;}
-  var giorni=(pat.dieta&&pat.dieta.giorni)||{};
-  var obj=pat.obiettivi||{kcal:1800,p:120,c:200,f:60};
+  var pat=getPatientById(patId);
+  if(!pat){showToast('Paziente non trovato');return;}
+  var giorni=((pat.dieta||{}).giorni)||{};
+  var obj=pat.obiettivi||{kcal:1800,p:150,c:180,f:55};
   var now=new Date();
-  var dateStr=now.getDate()+' '+MM[now.getMonth()]+' '+now.getFullYear();
   var GG_FULL=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
-  var PASTI_P=[{id:'colazione',nome:'Colazione',emoji:'☕'},{id:'spuntino_m',nome:'Spuntino',emoji:'🍎'},{id:'pranzo',nome:'Pranzo',emoji:'🍽️'},{id:'merenda',nome:'Merenda',emoji:'🥜'},{id:'cena',nome:'Cena',emoji:'🌙'}];
-  var html='<div class="print-page"><div class="print-header"><h1>🥗 Piano Alimentare Settimanale</h1>'
-    +'<p><strong>'+pat.nome+'</strong> &nbsp;·&nbsp; Stampato il '+dateStr+'</p>'
-    +'<p>Obiettivi: '+obj.kcal+' kcal &nbsp;|&nbsp; P '+obj.p+'g &nbsp;|&nbsp; C '+obj.c+'g &nbsp;|&nbsp; G '+obj.f+'g</p></div>';
+  var PASTI_P=[
+    {id:'colazione',nome:'Colazione',ora:'07:30'},
+    {id:'spuntino_m',nome:'Spuntino',ora:'10:30'},
+    {id:'pranzo',nome:'Pranzo',ora:'13:00'},
+    {id:'merenda',nome:'Merenda',ora:'16:30'},
+    {id:'cena',nome:'Cena',ora:'19:30'}
+  ];
+
+  // Calcolo totali settimanali per riepilogo
+  var weekTotals=[];
+  for(var wi=0;wi<7;wi++){
+    var t=getTotals(pat,wi);
+    weekTotals.push(t);
+  }
+  var maxKcal=Math.max.apply(null,weekTotals.map(function(t){return t.kcal;}));
+  var avgKcal=r(weekTotals.reduce(function(s,t){return s+t.kcal;},0)/7);
+
+  var html='<div class="p-page">';
+
+  // ── HEADER DOCUMENTO ──
+  html+='<div class="p-doc-header">'
+    +'<div class="p-logo-line">'
+    +'<div class="p-logo-mark"><svg viewBox="0 0 20 20" width="20" height="20"><path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm0 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 11.2c-2.7 0-5-1.4-6.4-3.4.6-1.1 3.4-1.8 6.4-1.8s5.8.7 6.4 1.8c-1.4 2-3.7 3.4-6.4 3.4z"/></svg></div>'
+    +'<div class="p-studio-name">Piano Alimentare Personalizzato</div>'
+    +'</div>'
+    +'<div class="p-paziente-nome">'+pat.nome+'</div>'
+    +'<div class="p-paziente-meta">Emesso il '+now.getDate()+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear()+'&nbsp;&nbsp;|&nbsp;&nbsp;Validità 8 settimane</div>'
+    +'<div class="p-obiettivi-bar">'
+    +'<div class="p-ob"><div class="p-ob-val">'+obj.kcal+'</div><div class="p-ob-lbl">kcal / die</div></div>'
+    +'<div class="p-ob"><div class="p-ob-val">'+obj.p+'g</div><div class="p-ob-lbl">Proteine</div></div>'
+    +'<div class="p-ob"><div class="p-ob-val">'+obj.c+'g</div><div class="p-ob-lbl">Carboidrati</div></div>'
+    +'<div class="p-ob"><div class="p-ob-val">'+obj.f+'g</div><div class="p-ob-lbl">Grassi</div></div>'
+    +'</div>'
+    +'</div>';
+
+  html+='<div class="p-week-title">Piano settimanale</div>';
+
+  // ── GIORNI ──
   for(var i=0;i<7;i++){
-    var g=giorni[i]||{};var note=g.note||{};var tot=getTotals(pat,i);var d=getDate(i);
-    html+='<div class="print-day"><div class="print-day-title">'+GG_FULL[i]+' '+d.getDate()+' '+MM[d.getMonth()]+'</div>';
+    var g=giorni[i]||{};
+    var note=g.note||{};
+    var tot=weekTotals[i];
+    if(i===3) html+='</div><div class="p-page">';
+
+    html+='<div class="p-day"><div class="p-day-header">'
+      +'<span class="p-day-name">'+GG_FULL[i]+'</span>'
+      +'<span class="p-day-kcal">'+tot.kcal+' kcal &nbsp;|&nbsp; P '+tot.p+'g &nbsp; C '+tot.c+'g &nbsp; G '+tot.f+'g</span>'
+      +'</div>'
+      +'<table class="p-meals-table">';
+
     PASTI_P.forEach(function(pm){
-      var cibi=g[pm.id]||[];if(!cibi.length)return;
+      var cibi=g[pm.id]||[];
+      if(!cibi.length) return;
       var pk=r(cibi.reduce(function(s,f){return s+(f.kcal||0);},0));
       var pp=r(cibi.reduce(function(s,f){return s+(f.p||0);},0),1);
       var pc=r(cibi.reduce(function(s,f){return s+(f.c||0);},0),1);
       var pf=r(cibi.reduce(function(s,f){return s+(f.fat||f.f||0);},0),1);
-      html+='<div class="print-pasto"><div class="print-pasto-title">'+pm.emoji+' '+pm.nome+'</div>';
-      cibi.forEach(function(food){
-        html+='<div class="print-food"><span class="print-food-name">'+food.n+'</span><span class="print-food-qty">'+(food.q||'')+'</span><span class="print-food-kcal">'+r(food.kcal||0)+' kcal</span></div>';
-      });
-      html+='<div class="print-macros">P '+pp+'g &nbsp;·&nbsp; C '+pc+'g &nbsp;·&nbsp; G '+pf+'g &nbsp;·&nbsp; Tot. '+pk+' kcal</div>';
-      if(note[pm.id])html+='<div class="print-nota">📝 '+note[pm.id]+'</div>';
-      html+='</div>';
+
+      html+='<tr>'
+        +'<td class="p-meal-col"><span class="p-meal-name">'+pm.nome+'</span><span class="p-meal-time">'+pm.ora+'</span></td>'
+        +'<td class="p-foods-col">'
+        +cibi.map(function(food){
+          return '<div class="p-food-item">'
+            +'<span class="p-food-name">'+food.n+'</span>'
+            +'<span class="p-food-qty">'+( food.q&&food.q!=='—'?food.q:'')+'</span>'
+            +'<span class="p-food-kcal">'+r(food.kcal||0)+' kcal</span>'
+            +'</div>';
+        }).join('')
+        +(note[pm.id]?'<div class="p-nota">'+note[pm.id]+'</div>':'')
+        +'</td>'
+        +'<td class="p-kcal-col"><div class="p-pasto-kcal">'+pk+' kcal</div><div class="p-macro-row">P'+pp+' C'+pc+' G'+pf+'</div></td>'
+        +'</tr>';
     });
-    html+='<div class="print-day-totals">Totale giorno: '+tot.kcal+' kcal &nbsp;|&nbsp; P '+tot.p+'g &nbsp;|&nbsp; C '+tot.c+'g &nbsp;|&nbsp; G '+tot.f+'g</div></div>';
-    if(i===1||i===3||i===5)html+='<div style="page-break-after:always"></div>';
+
+    html+='</table></div>';
   }
-  html+='<div class="print-page"><div class="print-header"><h1>📊 Riepilogo Settimanale</h1><p>'+pat.nome+'</p></div><div class="print-week-summary">';
+
+  // ── RIEPILOGO ──
+  html+='<div class="p-summary"><div class="p-summary-title">Riepilogo settimanale</div>';
   for(var j=0;j<7;j++){
-    var tot2=getTotals(pat,j);var pct=Math.min(100,r(tot2.kcal/obj.kcal*100));
-    html+='<div class="print-week-row"><span class="print-week-day">'+GG_FULL[j].slice(0,3)+'</span><span class="print-week-kcal">'+tot2.kcal+' kcal</span><div class="print-week-bar"><div class="print-week-fill" style="width:'+pct+'%"></div></div><span style="font-size:11px;color:#6b7280;width:35px;text-align:right">'+pct+'%</span></div>';
+    var pct=maxKcal>0?r(weekTotals[j].kcal/maxKcal*100):0;
+    html+='<div class="p-summary-row">'
+      +'<span class="p-sum-day">'+GG_FULL[j].slice(0,3)+'</span>'
+      +'<span class="p-sum-kcal">'+weekTotals[j].kcal+' kcal</span>'
+      +'<div class="p-sum-bar-wrap"><div class="p-sum-bar" style="width:'+pct+'%"></div></div>'
+      +'<span class="p-sum-macros">P '+weekTotals[j].p+'g &nbsp; C '+weekTotals[j].c+'g &nbsp; G '+weekTotals[j].f+'g</span>'
+      +'</div>';
   }
-  var avgK=r(Object.keys(giorni).reduce(function(s,k){return s+getTotals(pat,parseInt(k)).kcal;},0)/7);
-  html+='</div><div style="margin-top:16px;padding:10px;background:#E6F1FB;border-radius:8px;font-size:12px"><strong>Media settimanale:</strong> '+avgK+' kcal/giorno &nbsp;·&nbsp; Obiettivo: '+obj.kcal+' kcal/giorno</div></div></div>';
+  html+='<div class="p-summary-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #e0e0e0">'
+    +'<span class="p-sum-day" style="font-weight:400;color:#888">Media</span>'
+    +'<span class="p-sum-kcal">'+avgKcal+' kcal</span>'
+    +'<div class="p-sum-bar-wrap"></div>'
+    +'<span class="p-sum-macros" style="color:#1a1a1a;font-weight:700">Obiettivo: '+obj.kcal+' kcal</span>'
+    +'</div></div>';
+
+  html+='<div class="p-footer">'
+    +'<span>'+pat.nome+' — Piano settimanale</span>'
+    +'<span>Documento riservato — uso personale</span>'
+    +'<span class="p-page-num"></span>'
+    +'</div>';
+
+  html+='</div>';
+
   el('print-area').innerHTML=html;
-  setTimeout(function(){window.print();setTimeout(function(){el('print-area').innerHTML='';},1000);},150);
+  setTimeout(function(){window.print();setTimeout(function(){el('print-area').innerHTML='';},1500);},200);
 }
 
 // ── MODAL UTILS ───────────────────────────────────────────────────────────────
@@ -1107,6 +1179,109 @@ function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();deferred
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(function(){});
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+// ── DATI DI TEST ─────────────────────────────────────────────────────────────
+async function creaAccountTest(){
+  // Controlla se esistono già
+  var accs = await loadNutriAccounts();
+  var nutri = accs.find(function(a){return a.user==='dott.bianchi';});
+  if(!nutri){
+    nutri = {id:'test-nutri-001', nome:'Dott.ssa Maria Bianchi', user:'dott.bianchi', passHash:hashPass('test1234')};
+    await fsSet('nutrizionisti', nutri.id, nutri);
+  }
+  // Controlla paziente test
+  var snap = await db.collection('pazienti').where('nutriId','==','test-nutri-001').get();
+  if(snap.empty){
+    var pat = {
+      id:'test-paz-001',
+      nutriId:'test-nutri-001',
+      nome:'Giuseppe Rossi',
+      note:'35 anni, obiettivo dimagrimento, intollerante al lattosio, allena 3v/settimana',
+      codice:'GIUSEPPE-2025',
+      obiettivi:{kcal:1800,p:150,c:180,f:55},
+      dieta:{giorni:{}},
+      dietaA:{giorni:{}},
+      dietaB:{giorni:{}},
+      configAB:{enabled:false,startDate:'',durata:8}
+    };
+    // Popola dieta con dati realistici
+    var giorniBase = {
+      0:{
+        colazione:[{n:"Fiocchi d'avena",q:"60g",kcal:227,p:7.8,c:39.6,fat:4.2,fi:5.4},{n:"Fage Total 0%",q:"150g",kcal:86,p:15.5,c:5.3,fat:0.3,fi:0},{n:"Mirtilli",q:"80g",kcal:46,p:0.6,c:11.2,fat:0.2,fi:1.9}],
+        spuntino_m:[{n:"Mela",q:"150g",kcal:78,p:0.5,c:19.5,fat:0.3,fi:3.6}],
+        pranzo:[{n:"Riso integrale cotto",q:"180g",kcal:198,p:4,c:41.4,fat:1.6,fi:3.2},{n:"Petto di pollo cotto",q:"150g",kcal:248,p:46.5,c:0,fat:5.4,fi:0},{n:"Zucchine cotte",q:"200g",kcal:34,p:2.6,c:5,fat:0.4,fi:2}],
+        merenda:[{n:"MyProtein Whey Protein Cioccolato",q:"30g",kcal:116,p:23.7,c:2,fat:2.1,fi:0.3}],
+        cena:[{n:"Salmone fresco",q:"180g",kcal:374,p:36,c:0,fat:25.2,fi:0},{n:"Patata bollita",q:"150g",kcal:116,p:3,c:25.4,fat:0.2,fi:2.7},{n:"Insalata mista",q:"100g",kcal:15,p:1.2,c:1.8,fat:0.3,fi:2}],
+        note:{pranzo:"Condire con 1 cucchiaio olio EVO a crudo",cena:"Cottura al vapore o al cartoccio"}
+      },
+      1:{
+        colazione:[{n:"Uovo intero",q:"2 uova (100g)",kcal:150,p:13,c:0.6,fat:11,fi:0},{n:"Pane integrale",q:"50g",kcal:112,p:4.3,c:21,fat:1,fi:3.3}],
+        spuntino_m:[{n:"Banana",q:"120g",kcal:107,p:1.3,c:26.4,fat:0.4,fi:3.1}],
+        pranzo:[{n:"Pasta integrale cotta",q:"180g",kcal:223,p:8.1,c:43.2,fat:1.8,fi:5.4},{n:"Tonno al naturale",q:"160g",kcal:166,p:38.4,c:0,fat:1.6,fi:0},{n:"Pomodorini",q:"100g",kcal:18,p:0.9,c:3.5,fat:0.2,fi:1.2}],
+        merenda:[{n:"Net Integratori Whey Protein Cacao",q:"30g",kcal:116,p:23.4,c:2,fat:2.1,fi:0.3}],
+        cena:[{n:"Petto di tacchino cotto",q:"200g",kcal:314,p:58,c:0,fat:7.6,fi:0},{n:"Broccoli cotti",q:"200g",kcal:68,p:5.6,c:10,fat:0.8,fi:5.2}],
+        note:{cena:"Cuocere alla piastra senza olio"}
+      },
+      2:{
+        colazione:[{n:"Fage Total 0%",q:"200g",kcal:114,p:20.6,c:7,fat:0.4,fi:0},{n:"Fiocchi di avena",q:"50g",kcal:189,p:6.5,c:33,fat:3.5,fi:5},{n:"Fragole",q:"100g",kcal:32,p:0.7,c:7.1,fat:0.3,fi:2}],
+        spuntino_m:[{n:"Mandorle",q:"25g",kcal:145,p:5.3,c:5.5,fat:12.5,fi:3.1}],
+        pranzo:[{n:"Quinoa cotta",q:"180g",kcal:216,p:7.9,c:38.3,fat:3.2,fi:5},{n:"Ceci cotti",q:"150g",kcal:210,p:11.3,c:34,fat:3,fi:9},{n:"Spinaci crudi",q:"100g",kcal:23,p:2.9,c:1.4,fat:0.4,fi:2.2}],
+        merenda:[{n:"Pera",q:"150g",kcal:86,p:0.6,c:19.5,fat:0.2,fi:4.7}],
+        cena:[{n:"Branzino al vapore",q:"220g",kcal:180,p:39.6,c:0,fat:4.4,fi:0},{n:"Asparagi",q:"200g",kcal:40,p:4.4,c:4,fat:0.4,fi:4.2}],
+        note:{pranzo:"Aggiungere limone e prezzemolo fresco"}
+      },
+      3:{
+        colazione:[{n:"Kellogg Special K",q:"40g",kcal:148,p:6.4,c:28,fat:0.6,fi:1.4},{n:"Latte p. scremato",q:"200ml",kcal:92,p:6.8,c:9.6,fat:3,fi:0}],
+        spuntino_m:[{n:"Arancia",q:"200g",kcal:94,p:1.8,c:23.4,fat:0.2,fi:4.8}],
+        pranzo:[{n:"Orzo perlato cotto",q:"180g",kcal:221,p:4.5,c:50.4,fat:0.7,fi:1.8},{n:"Gamberetti",q:"200g",kcal:160,p:34,c:1,fat:2,fi:0},{n:"Rucola",q:"60g",kcal:15,p:1.6,c:1.2,fat:0.4,fi:1}],
+        merenda:[{n:"Fage Total 0%",q:"125g",kcal:71,p:12.9,c:4.4,fat:0.3,fi:0}],
+        cena:[{n:"Pollo arrosto",q:"200g",kcal:390,p:46,c:0,fat:23,fi:0},{n:"Fagiolini cotti",q:"200g",kcal:50,p:4,c:9,fat:0.2,fi:6}],
+        note:{merenda:"Aggiungere 1 cucchiaino di miele se gradito"}
+      },
+      4:{
+        colazione:[{n:"Pancakes integrali",q:"2 pezzi (120g)",kcal:220,p:7,c:32,fat:7,fi:1},{n:"Sciroppo acero",q:"15ml",kcal:39,p:0,c:10,fat:0,fi:0}],
+        spuntino_m:[{n:"Kiwi",q:"2 frutti (200g)",kcal:122,p:2.2,c:29.4,fat:1,fi:6}],
+        pranzo:[{n:"Farro cotto",q:"180g",kcal:270,p:12.6,c:73.8,fat:1.8,fi:7.2},{n:"Bistecca magra",q:"150g",kcal:261,p:42,c:0,fat:9.8,fi:0},{n:"Peperone rosso",q:"150g",kcal:47,p:1.5,c:9,fat:0.5,fi:3.2}],
+        merenda:[{n:"Grenade Carb Killa Bar",q:"60g",kcal:221,p:18.6,c:23.4,fat:5.4,fi:3}],
+        cena:[{n:"Orata al forno",q:"250g",kcal:273,p:47.5,c:0,fat:10,fi:0},{n:"Patata dolce cotta",q:"150g",kcal:135,p:3,c:31.5,fat:0.2,fi:4.5}],
+        note:{cena:"Al forno con erbe aromatiche e limone"}
+      },
+      5:{
+        colazione:[{n:"Yogurt Muller Corner Fragola",q:"175g",kcal:194,p:6.6,c:31.5,fat:4.4,fi:0.5},{n:"Gallette di riso",q:"3 gallette",kcal:116,p:2.1,c:25.2,fat:0.9,fi:0.6}],
+        spuntino_m:[{n:"Fragole",q:"200g",kcal:64,p:1.4,c:14.2,fat:0.6,fi:4}],
+        pranzo:[{n:"Pizza margherita",q:"250g",kcal:588,p:25,c:80,fat:20,fi:5}],
+        merenda:[{n:"Cioccolato fondente 85%",q:"20g",kcal:113,p:2,c:5.8,fat:9.6,fi:2.2}],
+        cena:[{n:"Minestrone di verdure",q:"400ml",kcal:180,p:10,c:28,fat:4,fi:10},{n:"Pane integrale",q:"40g",kcal:90,p:3.4,c:16.8,fat:0.8,fi:2.6}],
+        note:{pranzo:"Giorno libero — goditi ogni morso con moderazione!"}
+      },
+      6:{
+        colazione:[{n:"Uova al tegamino",q:"2 uova",kcal:150,p:13,c:0.6,fat:11,fi:0},{n:"Avocado",q:"75g",kcal:120,p:1.5,c:6.4,fat:11.3,fi:5.1},{n:"Pane di segale",q:"50g",kcal:110,p:4,c:22.5,fat:0.9,fi:3}],
+        spuntino_m:[{n:"Ananas fresco",q:"150g",kcal:75,p:0.8,c:19.5,fat:0.2,fi:2.1}],
+        pranzo:[{n:"Risotto ai funghi",q:"350g",kcal:595,p:15.8,c:105,fat:15.8,fi:7}],
+        merenda:[{n:"Fage Total 0%",q:"125g",kcal:71,p:12.9,c:4.4,fat:0.3,fi:0}],
+        cena:[{n:"Orata al vapore",q:"250g",kcal:273,p:47.5,c:0,fat:10,fi:0},{n:"Verdure miste al vapore",q:"200g",kcal:50,p:3,c:8,fat:0.5,fi:4}],
+        note:{pranzo:"Domenica in famiglia — pasto condiviso"}
+      }
+    };
+    for(var i=0;i<7;i++){
+      pat.dieta.giorni[i]=giorniBase[i];
+      pat.dietaA.giorni[i]=JSON.parse(JSON.stringify(giorniBase[i]));
+      pat.dietaB.giorni[i]={colazione:[],spuntino_m:[],pranzo:[],merenda:[],cena:[],note:{}};
+    }
+    // Dieta B esempio (diversa da A)
+    pat.dietaB.giorni[0].colazione=[{n:"MyProtein Whey Protein Vaniglia",q:"35g",kcal:139,p:28,c:2.3,fat:2.6,fi:0.4},{n:"Banana",q:"120g",kcal:107,p:1.3,c:26.4,fat:0.4,fi:3.1}];
+    pat.dietaB.giorni[0].pranzo=[{n:"Pasta di semola cotta",q:"180g",kcal:279,p:9.9,c:54,fat:1.6,fi:2.5},{n:"Tonno al naturale",q:"160g",kcal:166,p:38.4,c:0,fat:1.6,fi:0}];
+    pat.dietaB.giorni[0].cena=[{n:"Petto di pollo cotto",q:"200g",kcal:330,p:62,c:0,fat:7.2,fi:0},{n:"Riso basmati cotto",q:"150g",kcal:222,p:3.6,c:46.5,fat:0.6,fi:0.9}];
+    _patients=[pat];
+    await fsSet('pazienti',pat.id,pat);
+  } else {
+    _patients = snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+  }
+  showToast('✅ Account test pronti!',3000);
+  alert('Account test creati:\n\nNUTRIZIONISTA\nUsername: dott.bianchi\nPassword: test1234\n\nPAZIENTE\nCodice accesso: GIUSEPPE-2025');
+}
+
+window.creaAccountTest = creaAccountTest;
+
 (async function init(){
   var sess=getSession();
   if(sess){
