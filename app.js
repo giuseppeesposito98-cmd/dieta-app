@@ -95,10 +95,26 @@ function getDietaKey(patient){
   var weeksDiff=Math.floor((now-start)/(7*24*60*60*1000));
   return weeksDiff%2===0?'A':'B';
 }
-function getDietaForWeek(patient, weekOffset){
-  // weekOffset: 0=current week, 1=next, -1=prev etc.
+function isDietaABActive(patient, weekOffset){
+  // Returns false if the A/B diet has expired for this weekOffset
   var cfg=patient.configAB||{};
-  if(!cfg.enabled) return patient.dieta||{giorni:{}};
+  if(!cfg.enabled) return false;
+  if(!cfg.startDate) return false;
+  if(!cfg.durata || cfg.durata===0) return true; // illimitata
+  var start=new Date(cfg.startDate);
+  var now=new Date();
+  var baseWeeks=Math.floor((now-start)/(7*24*60*60*1000));
+  var targetWeeks=baseWeeks+weekOffset;
+  // Se targetWeeks < 0 (prima dell'inizio) o >= durata (dopo la fine) → non attiva
+  if(targetWeeks < 0 || targetWeeks >= cfg.durata) return false;
+  return true;
+}
+function getDietaForWeek(patient, weekOffset){
+  weekOffset = weekOffset || 0;
+  var cfg=patient.configAB||{};
+  if(!cfg.enabled || !isDietaABActive(patient, weekOffset)){
+    return patient.dieta||{giorni:{}};
+  }
   var start=cfg.startDate?new Date(cfg.startDate):new Date();
   var now=new Date();
   var baseWeeks=Math.floor((now-start)/(7*24*60*60*1000));
@@ -313,12 +329,16 @@ function getWeekLabel(offset){
 function getActiveDietLabel(pat){
   var cfg=pat&&pat.configAB||{};
   if(!cfg.enabled) return '';
+  if(!isDietaABActive(pat, S.weekOffset)){
+    return ' — Dieta base';
+  }
   var start=cfg.startDate?new Date(cfg.startDate):new Date();
   var now=new Date();
   var baseW=Math.floor((now-start)/(7*24*60*60*1000));
   var targetW=baseW+S.weekOffset;
   var key=targetW%2===0?'A':'B';
-  return ' — Dieta '+key;
+  var rimanenti=cfg.durata>0?(cfg.durata-(baseW)):'∞';
+  return ' — Dieta '+key+(cfg.durata>0?' (sett. '+(targetW+1)+'/'+cfg.durata+')':'');
 }
 function renderOggi(){
   if(S.role==='nutrizionista'){renderNutriOggi();return;}
@@ -586,7 +606,7 @@ function renderPazienti(){
         +'<button class="btn-sm btn-sm-blue" onclick="editPatientDiet(\''+pat.id+'\')">✏️ Modifica dieta</button>'
         +'<button class="btn-sm btn-sm-purple" onclick="showPatientCode(\''+pat.id+'\')">🔑 Codice accesso</button>'
         +'<button class="btn-sm btn-sm-amber" onclick="openEditPatient(\''+pat.id+'\')">⚙️ Dati</button>'
-        +'<button class="btn-sm" style="background:#E6F1FB;color:#0C447C" onclick="printDieta(\''+pat.id+'\')">🖨️ Stampa</button>'
+        +'<button class="btn-sm" style="background:#E6F1FB;color:#0C447C" onclick="openPrintModal(\''+pat.id+'\')">🖨️ Stampa</button>'
         +'<button class="btn-sm btn-sm-red" onclick="deletePatient(\''+pat.id+'\')">🗑️</button>'
         +'</div></div>';
     });
@@ -1041,13 +1061,68 @@ async function saveConfigAB(){
   showToast('✅ Impostazioni salvate!');
 }
 
-// ── STAMPA // ── STAMPA ────────────────────────────────────────────────────────────────────
-function printDieta(patId){
+// ── STAMPA // ── PRINT MODAL ──────────────────────────────────────────────────────────────
+var _printPatId = null;
+function openPrintModal(patId){
+  _printPatId = patId;
+  var pat = getPatientById(patId);
+  if(!pat){ showToast('Paziente non trovato'); return; }
+  var cfg = pat.configAB||{};
+  var today = new Date().toISOString().split('T')[0];
+  // Default: inizio settimana corrente
+  var now = new Date();
+  var dow = now.getDay()===0?6:now.getDay()-1;
+  var mon = new Date(now); mon.setDate(now.getDate()-dow);
+  var defaultStart = mon.toISOString().split('T')[0];
+
+  var html = '<div class="modal-handle"></div>'
+    +'<div class="modal-title">🖨️ Stampa piano alimentare</div>'
+    +'<div style="background:var(--blue-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-d)">'
+    +'Paziente: <strong>'+pat.nome+'</strong></div>'
+    +'<label class="lbl">Data inizio stampa</label>'
+    +'<input type="date" class="inp" id="printStartDate" value="'+defaultStart+'">'
+    +'<label class="lbl">Numero di settimane da stampare</label>'
+    +'<select class="inp" id="printWeeks">'
+    +'<option value="1">1 settimana</option>'
+    +'<option value="2" selected>2 settimane</option>'
+    +'<option value="4">4 settimane</option>'
+    +'<option value="8">8 settimane</option>'
+    +'<option value="12">12 settimane</option>'
+    +'</select>';
+
+  if(cfg.enabled){
+    html+='<div style="background:var(--purple-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--purple-d)">'
+      +'🔄 Dieta A/B attiva — la stampa mostrerà automaticamente la dieta corretta per ogni settimana</div>';
+  }
+
+  html+='<button class="btn-full btn-prim" onclick="eseguiStampa()" style="margin-top:4px">🖨️ Stampa ora</button>'
+    +'<button class="btn-full btn-sec" onclick="closeModal(\'modalPrint\')">Annulla</button>';
+
+  setHtml('modalPrintContent', html);
+  openModal('modalPrint');
+}
+
+function eseguiStampa(){
+  var startDateVal = el('printStartDate').value;
+  var numWeeks = parseInt(el('printWeeks').value)||1;
+  closeModal('modalPrint');
+  setTimeout(function(){ printMultiWeek(_printPatId, startDateVal, numWeeks); }, 200);
+}
+
+// ── STAMPA ────────────────────────────────────────────────────────────────────
+function printDieta(patId){ openPrintModal(patId); }
+
+function printMultiWeek(patId, startDateStr, numWeeks){
   var pat=getPatientById(patId);
   if(!pat){showToast('Paziente non trovato');return;}
-  var giorni=((pat.dieta||{}).giorni)||{};
   var obj=pat.obiettivi||{kcal:1800,p:150,c:180,f:55};
-  var now=new Date();
+  var startDate = startDateStr ? new Date(startDateStr) : new Date();
+  // Normalizza a lunedì della settimana scelta
+  var dow = startDate.getDay()===0?6:startDate.getDay()-1;
+  startDate.setDate(startDate.getDate()-dow);
+  var now = new Date();
+  var cfgStart = (pat.configAB&&pat.configAB.startDate) ? new Date(pat.configAB.startDate) : now;
+
   var GG_FULL=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
   var PASTI_P=[
     {id:'colazione',nome:'Colazione',ora:'07:30'},
@@ -1056,101 +1131,124 @@ function printDieta(patId){
     {id:'merenda',nome:'Merenda',ora:'16:30'},
     {id:'cena',nome:'Cena',ora:'19:30'}
   ];
+  var MM_S=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 
-  // Calcolo totali settimanali per riepilogo
-  var weekTotals=[];
-  for(var wi=0;wi<7;wi++){
-    var t=getTotals(pat,wi);
-    weekTotals.push(t);
+  var html='';
+  var allWeekTotals=[];
+
+  // ── UNA PAGINA PER SETTIMANA (o due settimane per pagina se poche) ──
+  for(var w=0; w<numWeeks; w++){
+    var weekStart = new Date(startDate);
+    weekStart.setDate(startDate.getDate() + w*7);
+    var weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate()+6);
+
+    // Calcola quale dieta tocca questa settimana
+    var weeksFromCfg = Math.floor((weekStart - cfgStart)/(7*24*60*60*1000));
+    var cfg = pat.configAB||{};
+    var abActive = cfg.enabled && cfg.startDate && (cfg.durata===0||weeksFromCfg<cfg.durata) && weeksFromCfg>=0;
+    var dietaKey = '';
+    var dieta;
+    if(abActive){
+      dietaKey = weeksFromCfg%2===0 ? 'A' : 'B';
+      dieta = (dietaKey==='A' ? pat.dietaA : pat.dietaB)||pat.dieta||{giorni:{}};
+    } else {
+      dieta = pat.dieta||{giorni:{}};
+    }
+    var giorni = dieta.giorni||{};
+
+    // Calcola totali settimana
+    var weekTotals=[];
+    for(var d=0;d<7;d++){
+      var g=giorni[d]||{};
+      var kcal=0,p=0,c=0,f=0;
+      PASTI_P.forEach(function(pm){(g[pm.id]||[]).forEach(function(food){kcal+=food.kcal||0;p+=food.p||0;c+=food.c||0;f+=food.fat||food.f||0;});});
+      weekTotals.push({kcal:r(kcal),p:r(p,1),c:r(c,1),f:r(f,1)});
+    }
+    allWeekTotals.push({week:w+1,key:dietaKey,totals:weekTotals,start:weekStart,end:weekEnd});
+
+    var weekLabel = 'Settimana '+(w+1)
+      +' &nbsp;·&nbsp; '+weekStart.getDate()+' '+MM_S[weekStart.getMonth()]
+      +' – '+weekEnd.getDate()+' '+MM_S[weekEnd.getMonth()]+' '+weekEnd.getFullYear()
+      +(dietaKey?' &nbsp;·&nbsp; Dieta '+dietaKey:'');
+
+    if(w>0) html+='<div style="page-break-before:always"></div>';
+    html+='<div class="p-page">';
+
+    // Header solo prima settimana
+    if(w===0){
+      html+='<div class="p-doc-header">'
+        +'<div class="p-logo-line"><div class="p-logo-mark"><svg viewBox="0 0 20 20" width="20" height="20" fill="white"><path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm0 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 11.2c-2.7 0-5-1.4-6.4-3.4.6-1.1 3.4-1.8 6.4-1.8s5.8.7 6.4 1.8c-1.4 2-3.7 3.4-6.4 3.4z"/></svg></div>'
+        +'<div class="p-studio-name">Piano Alimentare Personalizzato</div></div>'
+        +'<div class="p-paziente-nome">'+pat.nome+'</div>'
+        +'<div class="p-paziente-meta">Emesso il '+now.getDate()+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear()
+        +'&nbsp;&nbsp;|&nbsp;&nbsp;'+numWeeks+(numWeeks===1?' settimana':' settimane')+' di piano</div>'
+        +'<div class="p-obiettivi-bar">'
+        +'<div class="p-ob"><div class="p-ob-val">'+obj.kcal+'</div><div class="p-ob-lbl">kcal / die</div></div>'
+        +'<div class="p-ob"><div class="p-ob-val">'+obj.p+'g</div><div class="p-ob-lbl">Proteine</div></div>'
+        +'<div class="p-ob"><div class="p-ob-val">'+obj.c+'g</div><div class="p-ob-lbl">Carboidrati</div></div>'
+        +'<div class="p-ob"><div class="p-ob-val">'+obj.f+'g</div><div class="p-ob-lbl">Grassi</div></div>'
+        +'</div></div>';
+    }
+
+    // Titolo settimana
+    html+='<div style="background:#1a1a1a;color:white;padding:8px 14px;border-radius:4px;margin-bottom:12px;font-size:12px;font-weight:700;letter-spacing:.04em">'+weekLabel+'</div>';
+
+    // Giorni
+    for(var i=0;i<7;i++){
+      var g2=giorni[i]||{};
+      var note2=g2.note||{};
+      var tot=weekTotals[i];
+      var hasFood=PASTI_P.some(function(pm){return (g2[pm.id]||[]).length>0;});
+      if(!hasFood) continue;
+
+      if(i===3&&w===0) html+='<div style="page-break-after:always"></div><div class="p-page">';
+
+      var dayDate=new Date(weekStart);dayDate.setDate(weekStart.getDate()+i);
+
+      html+='<div class="p-day"><div class="p-day-header">'
+        +'<span class="p-day-name">'+GG_FULL[i]+'&nbsp;<span style="font-weight:400;opacity:.6;font-size:10px">'+dayDate.getDate()+'/'+('0'+(dayDate.getMonth()+1)).slice(-2)+'</span></span>'
+        +'<span class="p-day-kcal">'+tot.kcal+' kcal &nbsp;|&nbsp; P '+tot.p+'g &nbsp; C '+tot.c+'g &nbsp; G '+tot.f+'g</span>'
+        +'</div><table class="p-meals-table">';
+
+      PASTI_P.forEach(function(pm){
+        var cibi=g2[pm.id]||[];
+        if(!cibi.length) return;
+        var pk=r(cibi.reduce(function(s,f){return s+(f.kcal||0);},0));
+        var pp=r(cibi.reduce(function(s,f){return s+(f.p||0);},0),1);
+        var pc=r(cibi.reduce(function(s,f){return s+(f.c||0);},0),1);
+        var pf=r(cibi.reduce(function(s,f){return s+(f.fat||f.f||0);},0),1);
+        html+='<tr><td class="p-meal-col"><span class="p-meal-name">'+pm.nome+'</span><span class="p-meal-time">'+pm.ora+'</span></td>'
+          +'<td class="p-foods-col">'
+          +cibi.map(function(food){return '<div class="p-food-item"><span class="p-food-name">'+food.n+'</span><span class="p-food-qty">'+(food.q&&food.q!=='—'?food.q:'')+'</span><span class="p-food-kcal">'+r(food.kcal||0)+' kcal</span></div>';}).join('')
+          +(note2[pm.id]?'<div class="p-nota">'+note2[pm.id]+'</div>':'')
+          +'</td><td class="p-kcal-col"><div class="p-pasto-kcal">'+pk+' kcal</div><div class="p-macro-row">P'+pp+' C'+pc+' G'+pf+'</div></td></tr>';
+      });
+      html+='</table></div>';
+    }
+    html+='<div class="p-footer"><span>'+pat.nome+'</span><span>Settimana '+(w+1)+'/'+numWeeks+(dietaKey?' — Dieta '+dietaKey:'')+'</span><span></span></div></div>';
   }
-  var maxKcal=Math.max.apply(null,weekTotals.map(function(t){return t.kcal;}));
-  var avgKcal=r(weekTotals.reduce(function(s,t){return s+t.kcal;},0)/7);
 
-  var html='<div class="p-page">';
-
-  // ── HEADER DOCUMENTO ──
-  html+='<div class="p-doc-header">'
-    +'<div class="p-logo-line">'
-    +'<div class="p-logo-mark"><svg viewBox="0 0 20 20" width="20" height="20"><path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm0 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 11.2c-2.7 0-5-1.4-6.4-3.4.6-1.1 3.4-1.8 6.4-1.8s5.8.7 6.4 1.8c-1.4 2-3.7 3.4-6.4 3.4z"/></svg></div>'
-    +'<div class="p-studio-name">Piano Alimentare Personalizzato</div>'
-    +'</div>'
-    +'<div class="p-paziente-nome">'+pat.nome+'</div>'
-    +'<div class="p-paziente-meta">Emesso il '+now.getDate()+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear()+'&nbsp;&nbsp;|&nbsp;&nbsp;Validità 8 settimane</div>'
-    +'<div class="p-obiettivi-bar">'
-    +'<div class="p-ob"><div class="p-ob-val">'+obj.kcal+'</div><div class="p-ob-lbl">kcal / die</div></div>'
-    +'<div class="p-ob"><div class="p-ob-val">'+obj.p+'g</div><div class="p-ob-lbl">Proteine</div></div>'
-    +'<div class="p-ob"><div class="p-ob-val">'+obj.c+'g</div><div class="p-ob-lbl">Carboidrati</div></div>'
-    +'<div class="p-ob"><div class="p-ob-val">'+obj.f+'g</div><div class="p-ob-lbl">Grassi</div></div>'
-    +'</div>'
-    +'</div>';
-
-  html+='<div class="p-week-title">Piano settimanale</div>';
-
-  // ── GIORNI ──
-  for(var i=0;i<7;i++){
-    var g=giorni[i]||{};
-    var note=g.note||{};
-    var tot=weekTotals[i];
-    if(i===3) html+='</div><div class="p-page">';
-
-    html+='<div class="p-day"><div class="p-day-header">'
-      +'<span class="p-day-name">'+GG_FULL[i]+'</span>'
-      +'<span class="p-day-kcal">'+tot.kcal+' kcal &nbsp;|&nbsp; P '+tot.p+'g &nbsp; C '+tot.c+'g &nbsp; G '+tot.f+'g</span>'
-      +'</div>'
-      +'<table class="p-meals-table">';
-
-    PASTI_P.forEach(function(pm){
-      var cibi=g[pm.id]||[];
-      if(!cibi.length) return;
-      var pk=r(cibi.reduce(function(s,f){return s+(f.kcal||0);},0));
-      var pp=r(cibi.reduce(function(s,f){return s+(f.p||0);},0),1);
-      var pc=r(cibi.reduce(function(s,f){return s+(f.c||0);},0),1);
-      var pf=r(cibi.reduce(function(s,f){return s+(f.fat||f.f||0);},0),1);
-
-      html+='<tr>'
-        +'<td class="p-meal-col"><span class="p-meal-name">'+pm.nome+'</span><span class="p-meal-time">'+pm.ora+'</span></td>'
-        +'<td class="p-foods-col">'
-        +cibi.map(function(food){
-          return '<div class="p-food-item">'
-            +'<span class="p-food-name">'+food.n+'</span>'
-            +'<span class="p-food-qty">'+( food.q&&food.q!=='—'?food.q:'')+'</span>'
-            +'<span class="p-food-kcal">'+r(food.kcal||0)+' kcal</span>'
-            +'</div>';
-        }).join('')
-        +(note[pm.id]?'<div class="p-nota">'+note[pm.id]+'</div>':'')
-        +'</td>'
-        +'<td class="p-kcal-col"><div class="p-pasto-kcal">'+pk+' kcal</div><div class="p-macro-row">P'+pp+' C'+pc+' G'+pf+'</div></td>'
-        +'</tr>';
+  // ── RIEPILOGO FINALE (solo se >1 settimana) ──
+  if(numWeeks>1){
+    var maxK2=0;
+    allWeekTotals.forEach(function(wt){wt.totals.forEach(function(t){if(t.kcal>maxK2)maxK2=t.kcal;});});
+    html+='<div style="page-break-before:always"></div><div class="p-page">';
+    html+='<div class="p-doc-header" style="margin-bottom:16px">'
+      +'<div class="p-paziente-nome" style="font-size:18px">Riepilogo '+numWeeks+' settimane</div>'
+      +'<div class="p-paziente-meta">'+pat.nome+'</div></div>';
+    allWeekTotals.forEach(function(wt){
+      var avgK=r(wt.totals.reduce(function(s,t){return s+t.kcal;},0)/7);
+      var pct=maxK2>0?r(avgK/maxK2*100):0;
+      html+='<div class="p-summary-row">'
+        +'<span class="p-sum-day">Sett. '+wt.week+(wt.key?' ('+wt.key+')':'')+'</span>'
+        +'<span class="p-sum-kcal">'+avgK+' kcal</span>'
+        +'<div class="p-sum-bar-wrap"><div class="p-sum-bar" style="width:'+pct+'%"></div></div>'
+        +'<span class="p-sum-macros">'+wt.start.getDate()+'/'+('0'+(wt.start.getMonth()+1)).slice(-2)+' – '+wt.end.getDate()+'/'+('0'+(wt.end.getMonth()+1)).slice(-2)+'</span>'
+        +'</div>';
     });
-
-    html+='</table></div>';
+    html+='<div class="p-footer"><span>'+pat.nome+' — Riepilogo piano</span><span></span><span></span></div></div>';
   }
-
-  // ── RIEPILOGO ──
-  html+='<div class="p-summary"><div class="p-summary-title">Riepilogo settimanale</div>';
-  for(var j=0;j<7;j++){
-    var pct=maxKcal>0?r(weekTotals[j].kcal/maxKcal*100):0;
-    html+='<div class="p-summary-row">'
-      +'<span class="p-sum-day">'+GG_FULL[j].slice(0,3)+'</span>'
-      +'<span class="p-sum-kcal">'+weekTotals[j].kcal+' kcal</span>'
-      +'<div class="p-sum-bar-wrap"><div class="p-sum-bar" style="width:'+pct+'%"></div></div>'
-      +'<span class="p-sum-macros">P '+weekTotals[j].p+'g &nbsp; C '+weekTotals[j].c+'g &nbsp; G '+weekTotals[j].f+'g</span>'
-      +'</div>';
-  }
-  html+='<div class="p-summary-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #e0e0e0">'
-    +'<span class="p-sum-day" style="font-weight:400;color:#888">Media</span>'
-    +'<span class="p-sum-kcal">'+avgKcal+' kcal</span>'
-    +'<div class="p-sum-bar-wrap"></div>'
-    +'<span class="p-sum-macros" style="color:#1a1a1a;font-weight:700">Obiettivo: '+obj.kcal+' kcal</span>'
-    +'</div></div>';
-
-  html+='<div class="p-footer">'
-    +'<span>'+pat.nome+' — Piano settimanale</span>'
-    +'<span>Documento riservato — uso personale</span>'
-    +'<span class="p-page-num"></span>'
-    +'</div>';
-
-  html+='</div>';
 
   el('print-area').innerHTML=html;
   setTimeout(function(){window.print();setTimeout(function(){el('print-area').innerHTML='';},1500);},200);
@@ -1181,6 +1279,8 @@ if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch
 // ── INIT ──────────────────────────────────────────────────────────────────────
 // ── DATI DI TEST ─────────────────────────────────────────────────────────────
 async function creaAccountTest(){
+  showToast('⏳ Creazione account in corso...',5000);
+  try {
   // Controlla se esistono già
   var accs = await loadNutriAccounts();
   var nutri = accs.find(function(a){return a.user==='dott.bianchi';});
@@ -1188,9 +1288,13 @@ async function creaAccountTest(){
     nutri = {id:'test-nutri-001', nome:'Dott.ssa Maria Bianchi', user:'dott.bianchi', passHash:hashPass('test1234')};
     await fsSet('nutrizionisti', nutri.id, nutri);
   }
-  // Controlla paziente test
+  // Elimina paziente test esistente per ricrearlo pulito
   var snap = await db.collection('pazienti').where('nutriId','==','test-nutri-001').get();
-  if(snap.empty){
+  if(!snap.empty){
+    await Promise.all(snap.docs.map(function(d){return d.ref.delete();}));
+  }
+  // Crea sempre il paziente test da zero
+  if(true){
     var pat = {
       id:'test-paz-001',
       nutriId:'test-nutri-001',
@@ -1276,11 +1380,21 @@ async function creaAccountTest(){
   } else {
     _patients = snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
   }
-  showToast('✅ Account test pronti!',3000);
-  alert('Account test creati:\n\nNUTRIZIONISTA\nUsername: dott.bianchi\nPassword: test1234\n\nPAZIENTE\nCodice accesso: GIUSEPPE-2025');
+  showToast('✅ Account test pronti! Accedi ora.',4000);
+  setTimeout(function(){
+    alert('✅ Account test creati!\n\n👨‍⚕️ NUTRIZIONISTA\nUsername: dott.bianchi\nPassword: test1234\n\n👤 PAZIENTE\nCodice accesso: GIUSEPPE-2025\n\nAccedi ora con le credenziali sopra.');
+  },500);
+  } catch(err) {
+    showToast('❌ Errore: '+err.message, 5000);
+    console.error('Test account error:', err);
+  }
 }
 
 window.creaAccountTest = creaAccountTest;
+window.openPrintModal = openPrintModal;
+window.eseguiStampa = eseguiStampa;
+window.printMultiWeek = printMultiWeek;
+window.isDietaABActive = isDietaABActive;
 
 (async function init(){
   var sess=getSession();
