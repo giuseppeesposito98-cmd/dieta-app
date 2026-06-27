@@ -175,7 +175,7 @@ async function doLogin(){
       var accounts=await loadNutriAccounts();
       var acc=accounts.find(function(a){return a.user===user&&a.passHash===hashPass(pass);});
       if(!acc){el('loginErr').textContent='Credenziali non corrette.';showLoadingLogin(false);return;}
-      saveSession({role:'nutrizionista',nutriId:acc.id});
+      saveSession({role:'nutrizionista',nutriId:acc.id,nutriNome:acc.nome,nutriUser:acc.user});
       await startApp('nutrizionista',acc);
     }catch(e){el('loginErr').textContent='Errore connessione. Controlla la rete.';showLoadingLogin(false);}
   }else{
@@ -238,6 +238,8 @@ async function startApp(role,entity){
     el('hRoleBadge').className='role-badge nutri';
     el('hKcal').style.display='none';
     setupNutriTabs();
+    // Carica logo da Firestore e aggiorna cache locale
+    loadLogoFromFirestore().then(function(){});
     await startPatientsListener(entity.id,function(){
       if(S.curTab==='pazienti')renderPazienti();
       else if(S.curTab==='oggi')renderOggi();
@@ -690,15 +692,136 @@ async function deletePatient(patId){
 
 // ── IMPOSTAZIONI ──────────────────────────────────────────────────────────────
 function renderImpostazioni(){
-  var accounts=[];var acc=null;
+  var logo = localStorage.getItem('nutri_logo_'+S.nutriId)||'';
+  var nutriNome = '';
+  var nutriUser = '';
+  // Try to get nutri info from cached session
+  try {
+    var sess = JSON.parse(sessionStorage.getItem('nd_session_v4')||'null');
+    if(sess && sess.nutriNome) nutriNome = sess.nutriNome;
+    if(sess && sess.nutriUser) nutriUser = sess.nutriUser;
+  } catch(e){}
+
   var html='<div class="sec-title">Il mio account</div>'
-    +'<div class="card"><div class="card-title">🩺 Nutrizionista</div>'
-    +'<div style="font-size:13px;color:var(--text-sec);margin-top:4px">Pazienti: '+getPatientsOf(S.nutriId).length+'</div></div>'
+    +'<div class="card">'
+    +'<div class="card-title">🩺 Nutrizionista</div>'
+    +'<div style="font-size:13px;color:var(--text-sec);margin-top:4px">Pazienti seguiti: <strong>'+getPatientsOf(S.nutriId).length+'</strong></div>'
+    +'</div>'
+
+    // ── LOGO SECTION ──
+    +'<div class="sec-title">Logo studio</div>'
+    +'<div class="card">'
+    +'<div class="card-desc">Il logo apparirà in alto a sinistra su ogni stampa del piano alimentare. Formati supportati: PNG, JPG, SVG. Dimensione consigliata: 400×120px.</div>'
+
+    // Preview logo attuale
+    +(logo
+      ? '<div style="border:1px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center;margin-bottom:12px;background:var(--bg-sec)">'
+        +'<img id="logoPreview" src="'+logo+'" style="max-height:60px;max-width:200px;object-fit:contain" alt="Logo studio">'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;margin-bottom:8px">'
+        +'<button class="btn-act btn-exp" style="flex:1" onclick="triggerLogoUpload()">🔄 Cambia logo</button>'
+        +'<button class="btn-act btn-rst" style="flex:0;padding:12px 16px" onclick="removeLogo()">🗑️</button>'
+        +'</div>'
+      : '<div style="border:2px dashed var(--border);border-radius:var(--rs);padding:24px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="triggerLogoUpload()">'
+        +'<div style="font-size:32px;margin-bottom:8px">🖼️</div>'
+        +'<div style="font-size:14px;font-weight:700;color:var(--text)">Carica il logo del tuo studio</div>'
+        +'<div style="font-size:12px;color:var(--text-sec);margin-top:4px">Tocca per selezionare un\'immagine</div>'
+        +'</div>'
+        +'<button class="btn-act btn-imp" onclick="triggerLogoUpload()">📁 Scegli immagine</button>'
+    )
+    +'<input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="uploadLogo(event)">'
+    +'</div>'
+
     +'<div class="sec-title">Dati</div>'
     +'<div class="card"><div class="card-title">⚠️ Cancella tutti i dati</div>'
     +'<div class="card-desc">Cancella permanentemente tutti i pazienti e le diete associate al tuo account.</div>'
     +'<button class="btn-act btn-rst" onclick="deleteAllData()">🗑️ Cancella tutti i dati</button></div>';
+
   setHtml('tab-impostazioni',html);
+}
+
+function triggerLogoUpload(){ el('logoFileInput').click(); }
+
+async function uploadLogo(event){
+  var file = event.target.files[0];
+  if(!file) return;
+  event.target.value = '';
+  // Max 1.2MB file → base64 diventa ~1.6MB, sotto il limite Firestore di 1MB per campo
+  // Se troppo grande, ridimensioniamo via canvas
+  if(file.size > 1.2*1024*1024){
+    showToast('⚠️ Immagine troppo grande. Max 1.2MB (PNG/JPG).');
+    return;
+  }
+  showToast('⏳ Caricamento logo...', 5000);
+  var reader = new FileReader();
+  reader.onload = async function(e){
+    var dataUrl = e.target.result;
+    // Ridimensiona se necessario via canvas per rispettare limite Firestore
+    dataUrl = await resizeLogoIfNeeded(dataUrl, 600, 200);
+    try {
+      // Salva su Firestore nella collection 'loghi'
+      await db.collection('loghi').doc(S.nutriId).set({ logo: dataUrl, updatedAt: new Date().toISOString() });
+      // Cache locale per caricamento immediato
+      localStorage.setItem('nutri_logo_'+S.nutriId, dataUrl);
+      showToast('✅ Logo salvato!');
+      renderImpostazioni();
+    } catch(err){
+      // Se Firestore fallisce (es. doc troppo grande), salva solo in locale
+      console.error('Logo save error:', err);
+      localStorage.setItem('nutri_logo_'+S.nutriId, dataUrl);
+      showToast('✅ Logo salvato localmente.');
+      renderImpostazioni();
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function resizeLogoIfNeeded(dataUrl, maxW, maxH){
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = function(){
+      if(img.width <= maxW && img.height <= maxH){
+        resolve(dataUrl); return;
+      }
+      var ratio = Math.min(maxW/img.width, maxH/img.height);
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width*ratio);
+      canvas.height = Math.round(img.height*ratio);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/png', 0.9));
+    };
+    img.onerror = function(){ resolve(dataUrl); };
+    img.src = dataUrl;
+  });
+}
+
+async function removeLogo(){
+  if(!confirm('Rimuovere il logo?')) return;
+  try {
+    await db.collection('loghi').doc(S.nutriId).delete();
+  } catch(e){ console.warn('Logo delete from Firestore:', e); }
+  localStorage.removeItem('nutri_logo_'+S.nutriId);
+  showToast('🗑️ Logo rimosso');
+  renderImpostazioni();
+}
+
+// Restituisce il logo: prima dalla cache locale, poi da Firestore
+function getNutriLogo(){
+  return localStorage.getItem('nutri_logo_'+S.nutriId)||'';
+}
+
+// Carica il logo da Firestore e aggiorna cache locale
+async function loadLogoFromFirestore(){
+  try {
+    var snap = await db.collection('loghi').doc(S.nutriId).get();
+    if(snap.exists){
+      var logo = snap.data().logo||'';
+      if(logo) localStorage.setItem('nutri_logo_'+S.nutriId, logo);
+      return logo;
+    }
+  } catch(e){ console.warn('Logo load error:', e); }
+  return localStorage.getItem('nutri_logo_'+S.nutriId)||'';
 }
 async function deleteAllData(){
   if(!confirm('Cancellare TUTTI i pazienti e le diete? Azione irreversibile!'))return;
@@ -1435,6 +1558,11 @@ async function creaAccountTest(){
 }
 
 window.creaAccountTest = creaAccountTest;
+window.uploadLogo = uploadLogo;
+window.removeLogo = removeLogo;
+window.getNutriLogo = getNutriLogo;
+window.triggerLogoUpload = triggerLogoUpload;
+window.loadLogoFromFirestore = loadLogoFromFirestore;
 window.openPrintModal = openPrintModal;
 window.eseguiStampa = eseguiStampa;
 window.printMultiWeek = printMultiWeek;
