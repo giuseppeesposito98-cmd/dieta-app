@@ -347,6 +347,8 @@ function selectDay(i){S.selDay=i;renderOggi();renderHeader();}
 function setDietKey(key){S.activeDietKey=key;renderOggi();}
 function setDietKey_A(){setDietKey('A');}
 function setDietKey_B(){setDietKey('B');}
+function goEditDietA(){setDietKey_A();switchTab('oggi',0);setNav(0);var c=el('mainContent');if(c)c.scrollTop=0;}
+function goEditDietB(){setDietKey_B();switchTab('oggi',0);setNav(0);var c=el('mainContent');if(c)c.scrollTop=0;}
 function getDateOfWeek(dayIdx,weekOffset){
   var d=new Date();
   var cur=d.getDay()===0?6:d.getDay()-1;
@@ -742,8 +744,12 @@ function norm(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f
 function onSearch(val){
   el('searchClear').style.display=val?'block':'none';
   if(val.length<2){closeSugg();return;}
-  var q=norm(val);
-  var results=FOOD_INDEX.filter(function(f){return f.search.includes(q)||(f.cat&&norm(f.cat).includes(q));}).slice(0,12);
+  // Split into words - ALL words must appear somewhere in name or category
+  var words=norm(val).split(/\s+/).filter(function(w){return w.length>0;});
+  var results=FOOD_INDEX.filter(function(f){
+    var haystack=f.search+(f.cat?' '+norm(f.cat):'');
+    return words.every(function(w){return haystack.includes(w);});
+  }).slice(0,15);
   renderSugg(results,val);
 }
 function positionSugg(){
@@ -868,20 +874,23 @@ function renderConfigAB(){
     html+='<div class="sec-title">Modifica piani</div>';
   var borderA=S.activeDietKey==='A'?'2px solid var(--blue)':'0.5px solid var(--border)';
   var borderB=S.activeDietKey==='B'?'2px solid var(--amber)':'0.5px solid var(--border)';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +'<div class="card" style="text-align:center;cursor:pointer;border:'+borderA+'" onclick="setDietKey_A();switchTab(\'oggi\',0);setNav(0)">'
-    +'<div style="font-size:28px;margin-bottom:6px">📋</div>'
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">'
+    +'<button style="background:var(--bg-card);border:'+borderA+';border-radius:var(--r);padding:18px 10px;cursor:pointer;width:100%;text-align:center" onclick="goEditDietA()">'
+    +'<div style="font-size:32px;margin-bottom:8px">📋</div>'
     +'<div style="font-size:16px;font-weight:800;color:var(--blue)">Dieta A</div>'
-    +'<div style="font-size:11px;color:var(--text-sec)">Settimane dispari</div>'
-    +'<div style="font-size:11px;color:var(--blue);margin-top:4px">✏️ Modifica</div>'
-    +'</div>'
-    +'<div class="card" style="text-align:center;cursor:pointer;border:'+borderB+'" onclick="setDietKey_B();switchTab(\'oggi\',0);setNav(0)">'
-    +'<div style="font-size:28px;margin-bottom:6px">📋</div>'
+    +'<div style="font-size:11px;color:var(--text-sec);margin-top:4px">Settimane dispari</div>'
+    +'<div style="margin-top:10px;background:var(--blue);color:white;border-radius:var(--rs);padding:8px;font-size:13px;font-weight:700">✏️ Modifica</div>'
+    +'</button>'
+    +'<button style="background:var(--bg-card);border:'+borderB+';border-radius:var(--r);padding:18px 10px;cursor:pointer;width:100%;text-align:center" onclick="goEditDietB()">'
+    +'<div style="font-size:32px;margin-bottom:8px">📋</div>'
     +'<div style="font-size:16px;font-weight:800;color:var(--amber-d)">Dieta B</div>'
-    +'<div style="font-size:11px;color:var(--text-sec)">Settimane pari</div>'
-    +'<div style="font-size:11px;color:var(--amber-d);margin-top:4px">✏️ Modifica</div>'
-    +'</div></div>';
+    +'<div style="font-size:11px;color:var(--text-sec);margin-top:4px">Settimane pari</div>'
+    +'<div style="margin-top:10px;background:var(--amber);color:white;border-radius:var(--rs);padding:8px;font-size:13px;font-weight:700">✏️ Modifica</div>'
+    +'</button>'
+    +'</div>';
   setHtml('tab-configAB',html);
+  // Scroll to top of content after render
+  var cont=el('mainContent');if(cont)cont.scrollTop=0;
 }
 function toggleAB(){
   var enabled=el('abEnabled').checked;
