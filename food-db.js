@@ -1169,4 +1169,559 @@ const FOOD_DB = [
 ["Tramezzino al prosciutto",246,11,30,9,2,"Fast food"],
 ["Panino con porchetta (200g)",468,22,42,24,2,"Fast food"],
 
+// ═══════════════════════════════════════════════════════
+// NET INTEGRATORI — Linea completa
+// ═══════════════════════════════════════════════════════
+["Net Integratori Whey Protein Cacao",388,78,6.5,7,1,"Integratori"],
+["Net Integratori Whey Protein Vaniglia",385,78,6,7,1,"Integratori"],
+["Net Integratori Whey Protein Fragola",384,78,6,7,1,"Integratori"],
+["Net Integratori Whey Protein Nocciola",387,78,6.5,7,1,"Integratori"],
+["Net Integratori Whey Protein Cookies",389,77,7,8,1,"Integratori"],
+["Net Integratori Whey Protein Banana",384,78,6,7,1,"Integratori"],
+["Net Integratori Whey Isolate Cacao",368,84,3,2,0.5,"Integratori"],
+["Net Integratori Whey Isolate Vaniglia",365,84,2.5,2,0.5,"Integratori"],
+["Net Integratori Whey Isolate Fragola",365,84,2.5,2,0.5,"Integratori"],
+["Net Integratori 100% Whey Zero Cacao",370,82,4,3,0.5,"Integratori"],
+["Net Integratori 100% Whey Zero Vaniglia",368,82,3.5,3,0.5,"Integratori"],
+["Net Integratori Hydro Whey",358,88,2,1,0,"Integratori"],
+["Net Integratori Casein Protein Cacao",362,76,8,4,1,"Integratori"],
+["Net Integratori Casein Protein Vaniglia",360,76,7.5,4,1,"Integratori"],
+["Net Integratori Vegan Protein Cacao",378,72,14,6,5,"Integratori"],
+["Net Integratori Vegan Protein Vaniglia",375,72,13,6,5,"Integratori"],
+["Net Integratori Pea Protein",338,80,2,1.5,2,"Integratori"],
+["Net Integratori Rice Protein",352,80,3,2,1,"Integratori"],
+["Net Integratori BCAA 2:1:1 polvere",0,76,0,0,0,"Integratori"],
+["Net Integratori BCAA 4:1:1 polvere",0,78,0,0,0,"Integratori"],
+["Net Integratori BCAA 8:1:1 polvere",0,80,0,0,0,"Integratori"],
+["Net Integratori BCAA + Glutammina",0,72,0,0,0,"Integratori"],
+["Net Integratori EAA Essential Amino",0,77,0,0,0,"Integratori"],
+["Net Integratori Creatina Monoidrato",0,0,0,0,0,"Integratori"],
+["Net Integratori Creatina HCL",0,0,0,0,0,"Integratori"],
+["Net Integratori L-Carnitina Liquida",16,0,4,0,0,"Integratori"],
+["Net Integratori L-Carnitina 1000 compresse",0,0,0,0,0,"Integratori"],
+["Net Integratori Acetil L-Carnitina",0,0,0,0,0,"Integratori"],
+["Net Integratori Glutammina",0,89,0,0,0,"Integratori"],
+["Net Integratori Beta-Alanina",0,0,0,0,0,"Integratori"],
+["Net Integratori Arginina",0,0,0,0,0,"Integratori"],
+["Net Integratori Pre-Workout",32,3,4,0.5,0,"Integratori"],
+["Net Integratori Mass Gainer",378,22,63,4,2,"Integratori"],
+["Net Integratori Gainer Pro",372,20,65,3,2,"Integratori"],
+["Net Integratori Protein Bar Cacao",368,28,38,9,4,"Integratori"],
+["Net Integratori Protein Bar Vaniglia",365,28,37,9,4,"Integratori"],
+["Net Integratori Protein Snack",358,25,39,8,5,"Integratori"],
+["Net Integratori Omega 3",695,0,0,78,0,"Integratori"],
+["Net Integratori Vitamina D3",0,0,0,0,0,"Integratori"],
+["Net Integratori Magnesio",0,0,0,0,0,"Integratori"],
+["Net Integratori ZMA",0,0,0,0,0,"Integratori"],
+["Net Integratori Collagene Idrolizzato",350,87,0,0.5,0,"Integratori"],
+["Net Integratori Collagene + Vitamina C",345,86,1,0.5,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// YAMAMOTO NUTRITION
+// ═══════════════════════════════════════════════════════
+["Yamamoto Whey Protein Cacao",388,79,5.5,7,1,"Integratori"],
+["Yamamoto Whey Protein Vaniglia",385,79,5,7,1,"Integratori"],
+["Yamamoto Iso Whey Zero Cacao",362,85,2,1.5,0.5,"Integratori"],
+["Yamamoto Iso Whey Zero Vaniglia",360,85,2,1.5,0.5,"Integratori"],
+["Yamamoto Whey Hydro",355,89,1.5,1,0,"Integratori"],
+["Yamamoto Vegan Protein",372,70,15,5,5,"Integratori"],
+["Yamamoto BCAA 2:1:1",0,76,0,0,0,"Integratori"],
+["Yamamoto Creatina Monoidrato",0,0,0,0,0,"Integratori"],
+["Yamamoto L-Carnitina",16,0,4,0,0,"Integratori"],
+["Yamamoto Pre-Workout",30,3,4,0.5,0,"Integratori"],
+["Yamamoto Protein Bar",362,27,38,9,4,"Integratori"],
+["Yamamoto Mass Protein",375,22,63,4,2,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// +WATT (PIÙ WATT)
+// ═══════════════════════════════════════════════════════
+["+Watt Whey Protein Cacao",385,78,6,7,1,"Integratori"],
+["+Watt Whey Protein Vaniglia",382,78,5.5,7,1,"Integratori"],
+["+Watt Whey Isolate",362,84,3,2,0.5,"Integratori"],
+["+Watt Vegan Protein",370,70,14,6,5,"Integratori"],
+["+Watt BCAA 2:1:1",0,76,0,0,0,"Integratori"],
+["+Watt BCAA 8:1:1",0,80,0,0,0,"Integratori"],
+["+Watt Creatina",0,0,0,0,0,"Integratori"],
+["+Watt L-Carnitina",16,0,4,0,0,"Integratori"],
+["+Watt Pre-Workout Pump",28,3,3.5,0.5,0,"Integratori"],
+["+Watt Protein Bar",360,27,38,9,4,"Integratori"],
+["+Watt Mass Builder",372,20,65,3,2,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// ETHICSPORT
+// ═══════════════════════════════════════════════════════
+["EthicSport Proteica Excellence Cacao",385,78,6,7,1,"Integratori"],
+["EthicSport Proteica Excellence Vaniglia",382,78,5.5,7,1,"Integratori"],
+["EthicSport Protein Vegan",368,70,14,6,5,"Integratori"],
+["EthicSport BCAA 8:1:1",0,80,0,0,0,"Integratori"],
+["EthicSport Creatina Plus",0,0,0,0,0,"Integratori"],
+["EthicSport L-Carnitina Premium",16,0,4,0,0,"Integratori"],
+["EthicSport Energia Rapida (gel)",95,0,23,0,0,"Integratori"],
+["EthicSport Tecnica Forte (pre-workout)",30,3,4,0.5,0,"Integratori"],
+["EthicSport Protein Bar Dark",355,25,38,9,5,"Integratori"],
+["EthicSport Hydration (bevanda)",20,0,5,0,0,"Integratori"],
+["EthicSport Collagene Premium",348,86,1,0.5,0,"Integratori"],
+["EthicSport Omega 3 Fish Oil",690,0,0,77,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// ENERVIT — Linea completa
+// ═══════════════════════════════════════════════════════
+["Enervit Gymline Muscle Whey Cacao",388,80,5,6,1,"Integratori"],
+["Enervit Gymline Muscle Whey Vaniglia",385,80,4.5,6,1,"Integratori"],
+["Enervit Gymline 100% Whey Isolate",362,84,3,2,0.5,"Integratori"],
+["Enervit Gymline Vegan Protein",368,70,14,6,5,"Integratori"],
+["Enervit Gymline BCAA",0,76,0,0,0,"Integratori"],
+["Enervit Gymline Creatina",0,0,0,0,0,"Integratori"],
+["Enervit Carnitin Transport",30,0,7.5,0,0,"Integratori"],
+["Enervit Sport Competition Bar",355,8,55,10,3,"Integratori"],
+["Enervit Protein Sport Bar",345,24,37,9,4,"Integratori"],
+["Enervit Gel (carboidrati)",90,0,22,0,0,"Integratori"],
+["Enervit Sport Drink",38,0,9.5,0,0,"Integratori"],
+["Enervit Recovery Drink",160,8,30,1,0,"Integratori"],
+["Enervit R2 Sport (recovery)",152,8,29,1,0,"Integratori"],
+["Enervit Protein Mousse Cacao",128,12,12,4,1,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// NAMED SPORT — Linea completa
+// ═══════════════════════════════════════════════════════
+["Named Sport 100% Whey Protein Cacao",388,78,6.5,7,1,"Integratori"],
+["Named Sport 100% Whey Protein Vaniglia",385,78,6,7,1,"Integratori"],
+["Named Sport 100% Whey Protein Fragola",384,78,6,7,1,"Integratori"],
+["Named Sport Whey Isolate 90 Cacao",368,84,3,2,0.5,"Integratori"],
+["Named Sport Whey Isolate 90 Vaniglia",365,84,2.5,2,0.5,"Integratori"],
+["Named Sport Total Protein Cacao",375,76,8,5,1,"Integratori"],
+["Named Sport Vegan Protein",368,70,14,6,5,"Integratori"],
+["Named Sport Plant Protein",365,70,13,6,6,"Integratori"],
+["Named Sport BCAA 4:1:1",0,78,0,0,0,"Integratori"],
+["Named Sport BCAA + B6",0,76,0,0,0,"Integratori"],
+["Named Sport Creatina Monoidrato",0,0,0,0,0,"Integratori"],
+["Named Sport L-Carnitina 1000",12,0,3,0,0,"Integratori"],
+["Named Sport L-Glutammina",0,89,0,0,0,"Integratori"],
+["Named Sport Pre-Workout",28,3,3.5,0.5,0,"Integratori"],
+["Named Sport Mass Builder",375,20,65,3,2,"Integratori"],
+["Named Sport Protein Bar Cacao",365,28,38,9,4,"Integratori"],
+["Named Sport Protein Bar Vaniglia",362,28,37,9,4,"Integratori"],
+["Named Sport Collagene + Vitamina C",348,86,1,0.5,0,"Integratori"],
+["Named Sport Omega 3",692,0,0,78,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// SCITEC NUTRITION — Linea completa
+// ═══════════════════════════════════════════════════════
+["Scitec 100% Whey Protein Cacao",383,79,5,5,1,"Integratori"],
+["Scitec 100% Whey Protein Vaniglia",380,79,4.5,5,1,"Integratori"],
+["Scitec 100% Whey Protein Fragola",381,79,5,5,1,"Integratori"],
+["Scitec 100% Whey Protein Cookies",385,78,6,6,1,"Integratori"],
+["Scitec Whey Isolate",356,84,1.5,1.5,0,"Integratori"],
+["Scitec Protein Delite",372,72,12,6,2,"Integratori"],
+["Scitec Jumbo (mass gainer)",388,24,63,4,2,"Integratori"],
+["Scitec Jumbo Hardcore",392,24,64,4.5,2,"Integratori"],
+["Scitec 100% Casein Complex",358,74,10,4,1,"Integratori"],
+["Scitec BCAA Xpress",0,76,0,0,0,"Integratori"],
+["Scitec BCAA + Glutamine",0,68,0,0,0,"Integratori"],
+["Scitec Creatina Monoidrato",0,0,0,0,0,"Integratori"],
+["Scitec L-Carnitina 1500",20,0,5,0,0,"Integratori"],
+["Scitec L-Glutammina",0,89,0,0,0,"Integratori"],
+["Scitec Arginine Amplifier",0,0,0,0,0,"Integratori"],
+["Scitec Hot Blood (pre-workout)",32,3,4,0.5,0,"Integratori"],
+["Scitec Choco Pro Bar",365,27,38,9,4,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// WEIDER — Linea completa
+// ═══════════════════════════════════════════════════════
+["Weider Gold Whey Protein Cacao",390,79,5.5,5,1,"Integratori"],
+["Weider Gold Whey Protein Vaniglia",388,79,5,5,1,"Integratori"],
+["Weider Gold Whey Protein Fragola",387,79,5,5,1,"Integratori"],
+["Weider Iso Whey Zero Cacao",362,85,2,1.5,0.5,"Integratori"],
+["Weider Iso Whey Zero Vaniglia",360,85,1.5,1.5,0.5,"Integratori"],
+["Weider Vegan Protein Cacao",372,70,15,5,5,"Integratori"],
+["Weider Mega Mass 4000",368,18,66,3,2,"Integratori"],
+["Weider BCAA Recovery",0,76,0,0,0,"Integratori"],
+["Weider Creatina Pure",0,0,0,0,0,"Integratori"],
+["Weider L-Carnitina 1500",18,0,4.5,0,0,"Integratori"],
+["Weider Pre-Workout",30,3,4,0.5,0,"Integratori"],
+["Weider Protein Bar Cacao",360,27,37,10,4,"Integratori"],
+["Weider Victory Endurance Gel",95,0,23,0,0,"Integratori"],
+["Weider Collagene",348,87,0,0.5,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// BSN — Linea completa
+// ═══════════════════════════════════════════════════════
+["BSN Syntha-6 Cacao",388,70,15,9,2,"Integratori"],
+["BSN Syntha-6 Vaniglia",385,70,14,9,2,"Integratori"],
+["BSN Syntha-6 Fragola",385,70,14,9,2,"Integratori"],
+["BSN Syntha-6 Edge",372,76,8,5,1,"Integratori"],
+["BSN True Mass Cacao",400,25,62,6,3,"Integratori"],
+["BSN True Mass 1200",430,28,70,7,3,"Integratori"],
+["BSN NO-Xplode (pre-workout)",35,3,5,0.5,0,"Integratori"],
+["BSN BCAA DNA",0,76,0,0,0,"Integratori"],
+["BSN Creatina DNA",0,0,0,0,0,"Integratori"],
+["BSN Protein Crisp Bar",365,27,37,10,4,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// UNIVERSAL NUTRITION
+// ═══════════════════════════════════════════════════════
+["Universal Animal Whey Cacao",382,78,6,6,1,"Integratori"],
+["Universal Animal Whey Vaniglia",380,78,5.5,6,1,"Integratori"],
+["Universal Ultra Whey Pro",385,78,6,6,1,"Integratori"],
+["Universal Real Gains (mass gainer)",412,27,65,7,3,"Integratori"],
+["Universal Animal Pak (multivitaminico)",0,0,0,0,0,"Integratori"],
+["Universal Animal Cuts",0,0,0,0,0,"Integratori"],
+["Universal Creatina",0,0,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// MUSCLEPHARM
+// ═══════════════════════════════════════════════════════
+["MusclePharm Combat Protein Cacao",380,75,9,5,2,"Integratori"],
+["MusclePharm Combat Protein Vaniglia",378,75,8.5,5,2,"Integratori"],
+["MusclePharm Whey Protein Cacao",385,78,6,6,1,"Integratori"],
+["MusclePharm BCAA 3:1:2",0,76,0,0,0,"Integratori"],
+["MusclePharm Creatina",0,0,0,0,0,"Integratori"],
+["MusclePharm Assault (pre-workout)",30,3,4,0.5,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// CELLUCOR
+// ═══════════════════════════════════════════════════════
+["Cellucor C4 Original (pre-workout)",20,0,4,0,0,"Integratori"],
+["Cellucor C4 Extreme",25,0,5,0,0,"Integratori"],
+["Cellucor C4 Sport",22,0,4.5,0,0,"Integratori"],
+["Cellucor Whey Protein Cacao",382,76,7,6,1,"Integratori"],
+["Cellucor Cor-Performance Whey",380,76,6.5,6,1,"Integratori"],
+["Cellucor BCAA Sport",0,74,0,0,0,"Integratori"],
+["Cellucor Creatina HCL",0,0,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// ALLNUTRITION
+// ═══════════════════════════════════════════════════════
+["AllNutrition Whey Protein Cacao",385,78,6,7,1,"Integratori"],
+["AllNutrition Whey Protein Vaniglia",382,78,5.5,7,1,"Integratori"],
+["AllNutrition Whey Isolate",362,84,3,2,0.5,"Integratori"],
+["AllNutrition BCAA 2:1:1",0,76,0,0,0,"Integratori"],
+["AllNutrition Creatina",0,0,0,0,0,"Integratori"],
+["AllNutrition F**king Delicious Protein Bar",378,27,40,10,4,"Integratori"],
+["AllNutrition Hard Mass (gainer)",378,22,63,4,2,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// KEVIN LEVRONE
+// ═══════════════════════════════════════════════════════
+["Kevin Levrone Anabolic Mass Cacao",388,24,64,5,2,"Integratori"],
+["Kevin Levrone Anabolic Whey Cacao",385,78,6,7,1,"Integratori"],
+["Kevin Levrone Anabolic Iso Whey",362,85,2,1.5,0.5,"Integratori"],
+["Kevin Levrone BCAA",0,76,0,0,0,"Integratori"],
+["Kevin Levrone Creatina",0,0,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// GNC
+// ═══════════════════════════════════════════════════════
+["GNC Pro Performance Whey Cacao",392,78,6,6,1,"Integratori"],
+["GNC Pro Performance Whey Vaniglia",390,78,5.5,6,1,"Integratori"],
+["GNC Total Lean Burn 60",0,0,0,0,0,"Integratori"],
+["GNC AMP Gold Whey",388,80,5,6,1,"Integratori"],
+["GNC Mega Men Sport (multivitaminico)",0,0,0,0,0,"Integratori"],
+["GNC L-Glutammina",0,89,0,0,0,"Integratori"],
+["GNC Creatina Monoidrato",0,0,0,0,0,"Integratori"],
+["GNC BCAA 2000",0,76,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// BULK POWDERS
+// ═══════════════════════════════════════════════════════
+["Bulk Powders Pure Whey Cacao",389,79,6,7,1,"Integratori"],
+["Bulk Powders Pure Whey Vaniglia",387,79,5.5,7,1,"Integratori"],
+["Bulk Powders Whey Isolate 90",371,84,3,2,0.5,"Integratori"],
+["Bulk Powders Complete Protein",375,76,8,5,2,"Integratori"],
+["Bulk Powders Vegan Protein",368,70,14,6,5,"Integratori"],
+["Bulk Powders Macro Munch Bar",368,27,38,10,4,"Integratori"],
+["Bulk Powders BCAA 2:1:1",0,76,0,0,0,"Integratori"],
+["Bulk Powders Creatina Monoidrato",0,0,0,0,0,"Integratori"],
+["Bulk Powders Complete Pre-Workout",28,3,3.5,0.5,0,"Integratori"],
+["Bulk Powders L-Carnitina",15,0,3.8,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// PROZIS — Linea estesa
+// ═══════════════════════════════════════════════════════
+["Prozis Protein Pancake Cacao",358,32,42,6,4,"Integratori"],
+["Prozis Protein Pancake Vaniglia",355,32,41,6,4,"Integratori"],
+["Prozis Protein Oatmeal Cacao",368,25,50,6,5,"Integratori"],
+["Prozis Protein Oatmeal Vaniglia",365,25,49,6,5,"Integratori"],
+["Prozis Zero Bar Cacao",328,32,38,4,10,"Integratori"],
+["Prozis Zero Bar Vaniglia",325,32,37,4,10,"Integratori"],
+["Prozis Nuts & Whey Bar",388,22,38,15,4,"Integratori"],
+["Prozis Sport Protein Cookie",420,20,52,14,3,"Integratori"],
+["Prozis Protein Cream Cacao",390,22,45,14,5,"Integratori"],
+["Prozis Protein Cream Nocciola",395,22,44,15,5,"Integratori"],
+["Prozis Protein Bread Mix",322,30,42,4,8,"Integratori"],
+["Prozis Protein Yogurt",72,12,5,1,0,"Integratori"],
+["Prozis Food Chicken (pollo cotto)",165,31,0,3.6,0,"Integratori"],
+["Prozis Food Tuna (tonno)",104,24,0,1,0,"Integratori"],
+["Prozis Omega 3 Premium",698,0,0,78,0,"Integratori"],
+["Prozis CLA",890,0,0,99,0,"Integratori"],
+["Prozis HMB",0,0,0,0,0,"Integratori"],
+["Prozis Beta-Alanina",0,0,0,0,0,"Integratori"],
+["Prozis Arginina AKG",0,0,0,0,0,"Integratori"],
+["Prozis ZMA",0,0,0,0,0,"Integratori"],
+["Prozis D-Aspartic Acid",0,0,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// MYPROTEIN — Linea estesa
+// ═══════════════════════════════════════════════════════
+["MyProtein Protein Pancake Mix Mirtilli",352,30,42,6,4,"Integratori"],
+["MyProtein Protein Overnight Oats Cacao",368,24,50,6,5,"Integratori"],
+["MyProtein Protein Porridge Vaniglia",362,24,49,6,5,"Integratori"],
+["MyProtein Protein Cookie Cacao",432,18,55,14,4,"Integratori"],
+["MyProtein Protein Brownie",398,20,48,14,4,"Integratori"],
+["MyProtein Layered Protein Bar",408,22,48,14,3,"Integratori"],
+["MyProtein Protein Crispy Bar",380,28,40,10,3,"Integratori"],
+["MyProtein Protein Flapjack",388,20,52,12,4,"Integratori"],
+["MyProtein THE Protein Bar",362,32,38,8,5,"Integratori"],
+["MyProtein Protein Bites Cacao",438,32,42,14,3,"Integratori"],
+["MyProtein Protein Spread Cacao",385,22,44,15,5,"Integratori"],
+["MyProtein Protein Spread Nocciola",390,22,43,16,5,"Integratori"],
+["MyProtein Alpha Men Multivitaminico",0,0,0,0,0,"Integratori"],
+["MyProtein CLA",890,0,0,99,0,"Integratori"],
+["MyProtein HMB",0,0,0,0,0,"Integratori"],
+["MyProtein ZMA",0,0,0,0,0,"Integratori"],
+["MyProtein Vitamina C",0,0,0,0,0,"Integratori"],
+["MyProtein Vitamina B12",0,0,0,0,0,"Integratori"],
+["MyProtein Ferro",0,0,0,0,0,"Integratori"],
+["MyProtein Zinco",0,0,0,0,0,"Integratori"],
+["MyProtein Magnesio Bisgliccinato",0,0,0,0,0,"Integratori"],
+["MyProtein Protein Yogurt Fragola",85,13,6,1,0,"Integratori"],
+["MyProtein Protein Milk Cacao",68,8,7,1.5,0,"Integratori"],
+["MyProtein Clear Protein Drink",40,8,2,0.1,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// SCI-MX
+// ═══════════════════════════════════════════════════════
+["Sci-MX Ultra Whey Protein Cacao",382,78,6,6,1,"Integratori"],
+["Sci-MX Whey Plus Isolate",362,84,3,2,0.5,"Integratori"],
+["Sci-MX Diet Whey Complex",342,60,15,6,3,"Integratori"],
+["Sci-MX BCAA",0,76,0,0,0,"Integratori"],
+["Sci-MX Creatina",0,0,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// POWERBAR
+// ═══════════════════════════════════════════════════════
+["PowerBar ProteinPlus Bar Cacao",352,30,39,9,3,"Integratori"],
+["PowerBar ProteinPlus Bar Vaniglia",350,30,38,9,3,"Integratori"],
+["PowerBar Natural Energy Cereal Bar",355,6.5,62,8,4,"Integratori"],
+["PowerBar Gel Energetico",95,0,22,0,0,"Integratori"],
+["PowerBar Isomax Drink",38,0,9.5,0,0,"Integratori"],
+["PowerBar Recovery Drink",165,8,31,1.5,0,"Integratori"],
+["PowerBar 5Electrolytes Drink",22,0,5.5,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// SIS (SCIENCE IN SPORT)
+// ═══════════════════════════════════════════════════════
+["SIS REGO Rapid Recovery Cacao",162,23,22,2,2,"Integratori"],
+["SIS REGO Rapid Recovery Vaniglia",160,23,22,2,2,"Integratori"],
+["SIS Whey Protein Cacao",382,78,6,6,1,"Integratori"],
+["SIS GO Energy Bar",345,6,65,8,3,"Integratori"],
+["SIS GO Gel Energetico",88,0,22,0,0,"Integratori"],
+["SIS GO Hydro Drink",25,0,6,0,0,"Integratori"],
+["SIS Beta Fuel Gel",105,0,26,0,0,"Integratori"],
+["SIS BCAA",0,76,0,0,0,"Integratori"],
+["SIS Creatina",0,0,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// HIGH5
+// ═══════════════════════════════════════════════════════
+["High5 Protein Bar Cacao",348,24,38,9,4,"Integratori"],
+["High5 Energy Bar",355,6,63,9,3,"Integratori"],
+["High5 Energy Gel",90,0,22,0,0,"Integratori"],
+["High5 IsoGel",60,0,14,0,0,"Integratori"],
+["High5 Zero Drink Tablet",10,0,2,0,0,"Integratori"],
+["High5 Protein Recovery",155,22,20,2,2,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// MULTIPOWER
+// ═══════════════════════════════════════════════════════
+["Multipower 100% Whey Protein Cacao",385,78,6,7,1,"Integratori"],
+["Multipower 100% Whey Protein Vaniglia",382,78,5.5,7,1,"Integratori"],
+["Multipower Protein Bar",358,25,38,9,4,"Integratori"],
+["Multipower BCAA",0,76,0,0,0,"Integratori"],
+["Multipower Creatina",0,0,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// NUTRABOLICS
+// ═══════════════════════════════════════════════════════
+["Nutrabolics Whey Protein Cacao",382,78,6,6,1,"Integratori"],
+["Nutrabolics Hydropure Isolate",358,87,1.5,1,0,"Integratori"],
+["Nutrabolics Supernova (pre-workout)",30,3,4,0.5,0,"Integratori"],
+["Nutrabolics Anabolic State BCAA",0,74,0,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// REFLEX NUTRITION
+// ═══════════════════════════════════════════════════════
+["Reflex Nutrition Instant Whey Cacao",380,78,6,5.5,1,"Integratori"],
+["Reflex Nutrition Instant Whey Vaniglia",378,78,5.5,5.5,1,"Integratori"],
+["Reflex Nutrition Native Whey",365,86,2,1.5,0.5,"Integratori"],
+["Reflex Nutrition Micellar Casein",360,75,9,4,1,"Integratori"],
+["Reflex Nutrition BCAA",0,76,0,0,0,"Integratori"],
+["Reflex Nutrition Creatina",0,0,0,0,0,"Integratori"],
+["Reflex Nutrition One Stop XTREME",388,34,55,5,3,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// NUTRISPORT
+// ═══════════════════════════════════════════════════════
+["Nutrisport 90+ Protein Cacao",362,85,2,2,0.5,"Integratori"],
+["Nutrisport 90+ Protein Vaniglia",360,85,1.5,2,0.5,"Integratori"],
+["Nutrisport Whey Protein",382,78,6,6,1,"Integratori"],
+["Nutrisport Recovery Bar",342,18,48,9,3,"Integratori"],
+["Nutrisport Endurance Gel",90,0,22,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// PROTEINE ITALIA
+// ═══════════════════════════════════════════════════════
+["ProteineItalia Whey Protein Cacao",385,78,6,7,1,"Integratori"],
+["ProteineItalia Whey Protein Vaniglia",382,78,5.5,7,1,"Integratori"],
+["ProteineItalia Whey Isolate",362,84,3,2,0.5,"Integratori"],
+["ProteineItalia Creatina",0,0,0,0,0,"Integratori"],
+["ProteineItalia BCAA",0,76,0,0,0,"Integratori"],
+["ProteineItalia L-Carnitina",16,0,4,0,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// BEVANDE PROTEICHE PRONTE (RTD)
+// ═══════════════════════════════════════════════════════
+["Protein Shake Müller pronto Cacao (330ml)",190,25,18,3,0,"Integratori"],
+["Protein Shake Müller pronto Vaniglia (330ml)",185,25,17,3,0,"Integratori"],
+["Optimum Nutrition Ready to Drink Cacao",160,20,13,3,0,"Integratori"],
+["MyProtein Clear Protein RTD (500ml)",105,20,5,0.2,0,"Integratori"],
+["Prozis Protein Shake RTD Cacao (330ml)",178,23,16,3,0,"Integratori"],
+["Named Sport Protein Shake RTD (250ml)",138,20,10,2.5,0,"Integratori"],
+["Alpro Protein Drink Soia (330ml)",85,8,7,2.5,0,"Integratori"],
+["Danone Oikos Protein Drink (330ml)",168,24,15,1.5,0,"Integratori"],
+["Premier Protein Shake Cacao (325ml)",160,30,5,3,0,"Integratori"],
+["Fairlife Core Power Elite (414ml)",230,42,7,3.5,0,"Integratori"],
+["Isopure Zero Carb RTD",125,26,0,1,0,"Integratori"],
+
+// ═══════════════════════════════════════════════════════
+// ALIMENTI PROTEICI & FUNCTIONAL FOOD
+// ═══════════════════════════════════════════════════════
+["Quark proteico 20%",120,14,4,5,0,"Latticini"],
+["Fiocchi di latte (cottage) proteico",98,13,3.5,3.5,0,"Latticini"],
+["Skyr proteico arricchito",66,12,4.5,0.2,0,"Latticini"],
+["Uova albume liquido pastorizzato (Rondovero)",47,10,0.5,0.2,0,"Uova"],
+["Albume d'uovo liquido (Just Whites)",47,10,0.5,0.2,0,"Uova"],
+["Petto di pollo surgelato IQF",110,23,0,2.5,0,"Carne"],
+["Pollo arrosto al forno (pronto)",195,25,0,10,0,"Carne"],
+["Polpette di pollo (Findus)",188,15,10,9,1,"Carne"],
+["Burger di manzo 5% grassi",135,21,0,5.5,0,"Carne"],
+["Burger vegetale Beyond Meat",250,20,7,18,2,"Legumi"],
+["Burger vegetale Impossible Meat",240,19,9,14,3,"Legumi"],
+["Tofu affumicato",135,14,2,8,0.5,"Legumi"],
+["Tofu vellutato (silken)",55,5,2,2.5,0,"Legumi"],
+["Seitan",118,25,4,1.5,0.5,"Legumi"],
+["Seitan al naturale",142,30,4,1.5,0.5,"Legumi"],
+["Lupini al naturale",119,15,10,2.7,2.4,"Legumi"],
+["Edamame surgelati sgusciati",122,11,8.9,5.2,5.2,"Legumi"],
+
+// ═══════════════════════════════════════════════════════
+// CEREALI & FARINE PROTEICHE
+// ═══════════════════════════════════════════════════════
+["Farina di avena integrale",369,12,62,7,8,"Cereali"],
+["Farina di avena istantanea",376,13,64,7,8,"Cereali"],
+["Farina di avena proteica (Prozis)",368,28,48,6,7,"Cereali"],
+["Farina di cocco",400,6,44,25,38,"Cereali"],
+["Farina di mandorle",576,21,10,50,10,"Cereali"],
+["Farina di ceci",387,22,57,6.5,11,"Cereali"],
+["Farina di lenticchie",352,25,55,2,12,"Cereali"],
+["Farina di soia sgrassata",330,48,26,1.5,12,"Cereali"],
+["Farina di riso integrale",363,7.5,77,2.5,4,"Cereali"],
+["Crusca di avena",246,17,56,7,15,"Cereali"],
+["Crusca di frumento",216,15,38,4.5,43,"Cereali"],
+["Psyllium (fibre)",0,0,0,0,88,"Cereali"],
+["Pane proteico (alto contenuto proteico)",245,20,28,6,5,"Cereali"],
+["Pan di segale proteico",230,15,35,4,8,"Cereali"],
+["Riso proteico MyProtein",355,12,78,1,1,"Cereali"],
+["Pasta proteica Barilla Proteine+",365,18,63,3,4.5,"Cereali"],
+["Pasta di lenticchie rosse (cotta)",130,10,20,0.8,4,"Cereali"],
+["Pasta di ceci (cotta)",168,10,28,2,5,"Cereali"],
+["Pasta di edamame (cotta)",155,13,19,3,5,"Cereali"],
+
+// ═══════════════════════════════════════════════════════
+// OLIO & GRASSI SANI
+// ═══════════════════════════════════════════════════════
+["Olio MCT (trigliceridi a catena media)",835,0,0,93,0,"Condimenti"],
+["Olio di cocco biologico",862,0,0,100,0,"Condimenti"],
+["Olio di semi di lino",884,0,0,100,0,"Condimenti"],
+["Olio di canapa",900,0,0,100,0,"Condimenti"],
+["Olio di avocado",884,0,0,100,0,"Condimenti"],
+["Olio di sesamo",899,0,0,100,0,"Condimenti"],
+["Ghee (burro chiarificato)",900,0.3,0,99.5,0,"Condimenti"],
+["Pasta di arachidi 100%",589,25,20,49,6,"Condimenti"],
+["Pasta di mandorle 100%",614,21,20,56,11,"Condimenti"],
+["Pasta di anacardi 100%",553,18,30,44,3,"Condimenti"],
+["Pasta di girasole",577,24,20,48,6,"Condimenti"],
+["Cocco grattugiato (disidratato)",660,6.7,24,64,16,"Condimenti"],
+["Latte di cocco intero (in lattina)",230,2.3,5.5,23,2.2,"Condimenti"],
+["Latte di cocco leggero (in lattina)",95,1,3,9,1,"Condimenti"],
+
+// ═══════════════════════════════════════════════════════
+// DOLCIFICANTI & SOSTITUTI ZUCCHERO
+// ═══════════════════════════════════════════════════════
+["Eritritolo",0,0,0,0,0,"Condimenti"],
+["Xilitolo",240,0,60,0,0,"Condimenti"],
+["Stevia in polvere",0,0,0,0,0,"Condimenti"],
+["Sciroppo di stevia",0,0,0,0,0,"Condimenti"],
+["Zucchero di cocco",375,0,90,0,0,"Condimenti"],
+["Sciroppo di agave",310,0,76,0,0,"Condimenti"],
+["Miele di acacia",304,0.3,82.4,0,0.2,"Condimenti"],
+["Miele millefiori",304,0.3,82,0,0.2,"Condimenti"],
+["Stevia cristallina",0,0,0,0,0,"Condimenti"],
+["Dolcificante Assugrin",0,0,0,0,0,"Condimenti"],
+["Dolcificante Canderel",0,0,0,0,0,"Condimenti"],
+
+// ═══════════════════════════════════════════════════════
+// PRODOTTI SENZA GLUTINE
+// ═══════════════════════════════════════════════════════
+["Dr. Schär Pasta Senza Glutine (cotta)",130,3,27,0.5,1,"Cereali"],
+["Dr. Schär Pane Bianco SG",250,4,50,3.5,2,"Cereali"],
+["Dr. Schär Pane Integrale SG",230,4,44,3.5,4,"Cereali"],
+["Dr. Schär Crackers SG",412,5.5,78,8,2,"Cereali"],
+["Dr. Schär Fette Biscottate SG",375,5,78,4,2,"Cereali"],
+["Schar Merendine SG",380,5,62,14,2,"Cereali"],
+["Barilla Pasta Senza Glutine (cotta)",132,3,27,0.8,1,"Cereali"],
+["Garofalo Pasta Senza Glutine",355,4,80,1.5,1,"Cereali"],
+["Riso Scotti Pasta SG Riso (cotta)",130,2.5,28,0.5,0.5,"Cereali"],
+["Nutrifree Pane SG",245,4,49,3.5,2,"Cereali"],
+
+// ═══════════════════════════════════════════════════════
+// PRODOTTI SENZA LATTOSIO
+// ═══════════════════════════════════════════════════════
+["Zymil Mozzarella SL",248,18,2.2,19,0,"Latticini"],
+["Zymil Ricotta SL",138,11,4,9,0,"Latticini"],
+["Zymil Panna SL",338,2.3,3.5,35,0,"Latticini"],
+["Zymil Burro SL",758,0.5,0.6,84,0,"Latticini"],
+["Lactoféia Yogurt SL Naturale",61,3.5,4.7,3.3,0,"Latticini"],
+["Granarolo Formaggio Cremoso SL",252,6.5,3.5,23,0,"Latticini"],
+["Mukki Yogurt SL Naturale",61,3.5,4.7,3.3,0,"Latticini"],
+
+// ═══════════════════════════════════════════════════════
+// SUPERMERCATI — Prodotti a marchio
+// ═══════════════════════════════════════════════════════
+["Esselunga Yogurt Greco 0%",57,10,4,0.1,0,"Yogurt marca"],
+["Esselunga Yogurt Naturale Intero",61,3.5,4.7,3.3,0,"Yogurt marca"],
+["Esselunga Petto di Pollo (pronto)",165,31,0,3.6,0,"Carne"],
+["Esselunga Bresaola",151,32,0.5,2,0,"Salumi marca"],
+["Lidl Milbona Yogurt Greco 0%",57,10,4,0.2,0,"Yogurt marca"],
+["Lidl Milbona Skyr",63,11,4,0.2,0,"Yogurt marca"],
+["Lidl Organic Whey Protein",382,78,6,7,1,"Integratori"],
+["Aldi Yogurt Greco",57,10,4,0.2,0,"Yogurt marca"],
+["Conad Yogurt Greco 0%",57,10,4,0.1,0,"Yogurt marca"],
+["Carrefour Bio Yogurt Greco",58,10,4,0.2,0,"Yogurt marca"],
+["Eurospin Yogurt Greco",56,10,4,0.2,0,"Yogurt marca"],
+["Penny Market Yogurt Greco",56,10,4,0.2,0,"Yogurt marca"],
+
+// ═══════════════════════════════════════════════════════
+// PIATTI PRONTI PROTEICI
+// ═══════════════════════════════════════════════════════
+["Findus Bistecca di merluzzo",128,16,8,4,0.5,"Surgelati marca"],
+["Findus Cotoletta di pollo",195,15,12,9,1,"Surgelati marca"],
+["Bofrost Petto di pollo grigliato",165,31,0,3.6,0,"Surgelati marca"],
+["Bofrost Filetti di salmone",208,20,0,14,0,"Surgelati marca"],
+["Apetito Pollo al limone",175,22,5,7,0.5,"Surgelati marca"],
+["Bonduelle Edamame surgelati",122,11,8.9,5.2,5.2,"Legumi conservati"],
+["Bonduelle Fave surgelate",72,6,9,0.5,5,"Legumi conservati"],
+["Valfrutta Fagioli Neri in scatola",132,8.9,24,0.5,8.7,"Legumi conservati"],
+["Valfrutta Edamame in scatola",122,11,8.9,5.2,5.2,"Legumi conservati"],
+
 ];
