@@ -1068,45 +1068,91 @@ function openPrintModal(patId){
   var pat = getPatientById(patId);
   if(!pat){ showToast('Paziente non trovato'); return; }
   var cfg = pat.configAB||{};
-  var today = new Date().toISOString().split('T')[0];
-  // Default: inizio settimana corrente
   var now = new Date();
   var dow = now.getDay()===0?6:now.getDay()-1;
   var mon = new Date(now); mon.setDate(now.getDate()-dow);
   var defaultStart = mon.toISOString().split('T')[0];
 
-  var html = '<div class="modal-handle"></div>'
-    +'<div class="modal-title">🖨️ Stampa piano alimentare</div>'
-    +'<div style="background:var(--blue-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-d)">'
-    +'Paziente: <strong>'+pat.nome+'</strong></div>'
-    +'<label class="lbl">Data inizio stampa</label>'
-    +'<input type="date" class="inp" id="printStartDate" value="'+defaultStart+'">'
-    +'<label class="lbl">Numero di settimane da stampare</label>'
-    +'<select class="inp" id="printWeeks">'
-    +'<option value="1">1 settimana</option>'
-    +'<option value="2" selected>2 settimane</option>'
-    +'<option value="4">4 settimane</option>'
-    +'<option value="8">8 settimane</option>'
-    +'<option value="12">12 settimane</option>'
-    +'</select>';
+  // Build and inject HTML
+  var content = el('modalPrintContent');
+  content.innerHTML = '';
+
+  var handle = document.createElement('div');
+  handle.className = 'modal-handle';
+  content.appendChild(handle);
+
+  var title = document.createElement('div');
+  title.className = 'modal-title';
+  title.textContent = 'Stampa piano alimentare';
+  content.appendChild(title);
+
+  var banner = document.createElement('div');
+  banner.style.cssText = 'background:var(--blue-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-d)';
+  banner.innerHTML = 'Paziente: <strong>'+pat.nome+'</strong>';
+  content.appendChild(banner);
+
+  var lbl1 = document.createElement('label');
+  lbl1.className = 'lbl'; lbl1.textContent = 'Data di inizio (lunedì della settimana)';
+  content.appendChild(lbl1);
+
+  var dateInp = document.createElement('input');
+  dateInp.type = 'date'; dateInp.className = 'inp'; dateInp.id = 'printStartDate';
+  dateInp.value = defaultStart;
+  content.appendChild(dateInp);
+
+  var lbl2 = document.createElement('label');
+  lbl2.className = 'lbl'; lbl2.textContent = 'Numero di settimane da stampare';
+  content.appendChild(lbl2);
+
+  var sel = document.createElement('select');
+  sel.className = 'inp'; sel.id = 'printWeeks';
+  [{v:'1',t:'1 settimana'},{v:'2',t:'2 settimane',sel:true},{v:'4',t:'4 settimane'},{v:'8',t:'8 settimane'},{v:'12',t:'12 settimane'}].forEach(function(o){
+    var opt = document.createElement('option');
+    opt.value = o.v; opt.textContent = o.t;
+    if(o.sel) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  content.appendChild(sel);
 
   if(cfg.enabled){
-    html+='<div style="background:var(--purple-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--purple-d)">'
-      +'🔄 Dieta A/B attiva — la stampa mostrerà automaticamente la dieta corretta per ogni settimana</div>';
+    var abNote = document.createElement('div');
+    abNote.style.cssText = 'background:var(--purple-l);border-radius:var(--rs);padding:10px 14px;margin:10px 0;font-size:12px;color:var(--purple-d)';
+    abNote.textContent = 'Dieta A/B attiva — ogni settimana mostrerà la dieta corretta automaticamente';
+    content.appendChild(abNote);
   }
 
-  html+='<button class="btn-full btn-prim" onclick="eseguiStampa()" style="margin-top:4px">🖨️ Stampa ora</button>'
-    +'<button class="btn-full btn-sec" onclick="closeModal(\'modalPrint\')">Annulla</button>';
+  var btnPrint = document.createElement('button');
+  btnPrint.className = 'btn-full btn-prim';
+  btnPrint.style.marginTop = '8px';
+  btnPrint.textContent = 'Stampa ora';
+  btnPrint.onclick = function(){ eseguiStampa(); };
+  content.appendChild(btnPrint);
 
-  setHtml('modalPrintContent', html);
+  var btnCancel = document.createElement('button');
+  btnCancel.className = 'btn-full btn-sec';
+  btnCancel.textContent = 'Annulla';
+  btnCancel.onclick = function(){ closeModal('modalPrint'); };
+  content.appendChild(btnCancel);
+
   openModal('modalPrint');
 }
 
 function eseguiStampa(){
-  var startDateVal = el('printStartDate').value;
-  var numWeeks = parseInt(el('printWeeks').value)||1;
+  // Read values before closing modal
+  var startInp = el('printStartDate');
+  var weeksInp = el('printWeeks');
+  if(!startInp || !weeksInp){
+    showToast('⚠️ Errore nel modulo di stampa');
+    return;
+  }
+  var startDateVal = startInp.value;
+  var numWeeks = parseInt(weeksInp.value)||1;
+  if(!startDateVal){
+    showToast('⚠️ Seleziona una data di inizio');
+    return;
+  }
   closeModal('modalPrint');
-  setTimeout(function(){ printMultiWeek(_printPatId, startDateVal, numWeeks); }, 200);
+  setTimeout(function(){ printMultiWeek(_printPatId, startDateVal, numWeeks); }, 300);
 }
 
 // ── STAMPA ────────────────────────────────────────────────────────────────────
@@ -1201,8 +1247,6 @@ function printMultiWeek(patId, startDateStr, numWeeks){
       var tot=weekTotals[i];
       var hasFood=PASTI_P.some(function(pm){return (g2[pm.id]||[]).length>0;});
       if(!hasFood) continue;
-
-      if(i===3&&w===0) html+='<div style="page-break-after:always"></div><div class="p-page">';
 
       var dayDate=new Date(weekStart);dayDate.setDate(weekStart.getDate()+i);
 

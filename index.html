@@ -247,7 +247,7 @@ select.inp{appearance:none;-webkit-appearance:none}
 
 /* ── PRINT STYLES ── */
 @media print {
-  @page { margin: 1.5cm 1.8cm; size: A4 portrait; }
+  @page { margin: 1.2cm 1.5cm; size: A4 portrait; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body, .app { background: white !important; color: #1a1a1a !important; font-family: 'Helvetica Neue', Arial, sans-serif !important; }
   .header, .tab-bar, .bottom-nav, .modal-bg, #debugBanner, .install-banner, .voice-fab, .voice-toast { display: none !important; }
@@ -259,22 +259,22 @@ select.inp{appearance:none;-webkit-appearance:none}
   .p-page:last-child { page-break-after: avoid; }
 
   /* Header documento */
-  .p-doc-header { text-align: center; padding: 0 0 18px; border-bottom: 3px solid #1a1a1a; margin-bottom: 20px; }
+  .p-doc-header { text-align: center; padding: 0 0 12px; border-bottom: 3px solid #1a1a1a; margin-bottom: 14px; }
   .p-logo-line { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
   .p-logo-mark { width: 36px; height: 36px; background: #1a1a1a; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
   .p-logo-mark svg { fill: white; }
   .p-studio-name { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #1a1a1a; }
   .p-paziente-nome { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
   .p-paziente-meta { font-size: 11px; color: #666; letter-spacing: .05em; }
-  .p-obiettivi-bar { display: flex; justify-content: center; gap: 24px; margin-top: 12px; padding: 10px 0; border-top: 1px solid #e0e0e0; }
+  .p-obiettivi-bar { display: flex; justify-content: center; gap: 24px; margin-top: 8px; padding: 7px 0; border-top: 1px solid #e0e0e0; }
   .p-ob { text-align: center; }
   .p-ob-val { font-size: 16px; font-weight: 700; color: #1a1a1a; }
   .p-ob-lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: .06em; }
 
   /* Griglia settimanale */
-  .p-week-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #888; margin-bottom: 12px; }
-  .p-day { margin-bottom: 16px; break-inside: avoid; }
-  .p-day-header { display: flex; align-items: center; background: #1a1a1a; color: white; padding: 6px 12px; border-radius: 4px; margin-bottom: 0; }
+  .p-week-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #888; margin-bottom: 8px; }
+  .p-day { margin-bottom: 10px; break-inside: avoid; page-break-inside: avoid; }
+  .p-day-header { display: flex; align-items: center; background: #1a1a1a; color: white; padding: 5px 10px; border-radius: 4px; margin-bottom: 0; }
   .p-day-name { font-size: 13px; font-weight: 700; letter-spacing: .05em; flex: 1; }
   .p-day-kcal { font-size: 11px; font-weight: 400; opacity: .75; }
 
@@ -282,16 +282,16 @@ select.inp{appearance:none;-webkit-appearance:none}
   .p-meals-table { width: 100%; border-collapse: collapse; }
   .p-meals-table tr { border-bottom: 1px solid #f0f0f0; }
   .p-meals-table tr:last-child { border-bottom: none; }
-  .p-meal-col { width: 90px; padding: 7px 12px; vertical-align: top; }
+  .p-meal-col { width: 82px; padding: 5px 10px; vertical-align: top; }
   .p-meal-name { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #888; display: block; }
   .p-meal-time { font-size: 9px; color: #bbb; }
-  .p-foods-col { padding: 7px 8px; vertical-align: top; }
-  .p-food-item { display: flex; justify-content: space-between; align-items: baseline; padding: 1px 0; }
+  .p-foods-col { padding: 5px 8px; vertical-align: top; }
+  .p-food-item { display: flex; justify-content: space-between; align-items: baseline; padding: 0.5px 0; }
   .p-food-name { font-size: 11px; color: #1a1a1a; flex: 1; }
   .p-food-qty { font-size: 10px; color: #888; margin-left: 8px; white-space: nowrap; }
   .p-food-kcal { font-size: 10px; color: #aaa; margin-left: 8px; white-space: nowrap; }
   .p-nota { font-size: 9.5px; color: #555; font-style: italic; padding: 3px 0 2px 8px; border-left: 2px solid #e0e0e0; margin-top: 3px; }
-  .p-kcal-col { width: 58px; padding: 7px 8px 7px 0; vertical-align: top; text-align: right; }
+  .p-kcal-col { width: 58px; padding: 5px 8px 5px 0; vertical-align: top; text-align: right; }
   .p-pasto-kcal { font-size: 11px; font-weight: 700; color: #1a1a1a; }
   .p-macro-row { font-size: 9px; color: #aaa; margin-top: 1px; }
 
