@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#378ADD">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="La Mia Dieta">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>La Mia Dieta</title>
+<style>
+:root{
+  --bg:#f7f8fa;--bg-card:#fff;--bg-sec:#f0f2f5;--text:#1a1a1a;--text-sec:#6b7280;
+  --border:rgba(0,0,0,0.1);--blue:#378ADD;--blue-l:#E6F1FB;--blue-d:#0C447C;
+  --green:#1D9E75;--green-l:#EAF3DE;--green-d:#3B6D11;
+  --amber:#EF9F27;--amber-l:#FAEEDA;--amber-d:#633806;
+  --red:#E24B4A;--red-l:#FCEBEB;--coral:#D85A30;--coral-l:#FAECE7;
+  --purple:#7C3AED;--purple-l:#EDE9FE;--purple-d:#4C1D95;
+  --r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.07)
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0f1117;--bg-card:#1c1f26;--bg-sec:#252830;--text:#f0f0f0;--text-sec:#9ca3af;
+  --border:rgba(255,255,255,0.1);--blue-l:#1a2d40;--blue-d:#93c5fd;
+  --green-l:#0d2218;--green-d:#6ee7b7;--amber-l:#2a1f0a;--amber-d:#fcd34d;
+  --red-l:#2a1010;--coral-l:#2a1508;--purple-l:#1e1a3a;--purple-d:#c4b5fd
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior:none}
+/* ── LOGIN ── */
+.login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#0d2235 0%,#1a3a5c 60%,#0d3d2a 100%)}
+.login-logo{font-size:56px;margin-bottom:8px}
+.login-title{font-size:26px;font-weight:800;color:#fff;margin-bottom:4px}
+.login-sub{font-size:14px;color:rgba(255,255,255,.6);margin-bottom:32px}
+.login-card{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-card.dark{background:#1c1f26}
+.role-tabs{display:flex;background:var(--bg-sec);border-radius:10px;padding:3px;gap:3px;margin-bottom:20px}
+.role-tab{flex:1;padding:9px;border:none;background:none;border-radius:8px;font-size:13px;font-weight:700;color:var(--text-sec);cursor:pointer;transition:all .2s;text-align:center}
+.role-tab.active{background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+@media(prefers-color-scheme:dark){.role-tab.active{background:#2a2d36}}
+.login-field{margin-bottom:12px}
+.login-lbl{font-size:12px;font-weight:700;color:var(--text-sec);margin-bottom:5px;display:block}
+.login-inp{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;background:var(--bg-sec);color:var(--text);outline:none;transition:border-color .2s;font-family:inherit}
+.login-inp:focus{border-color:var(--blue)}
+.btn-login{width:100%;padding:14px;border:none;border-radius:var(--rs);font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;transition:all .2s}
+.btn-login.nutri{background:var(--purple);color:#fff}
+.btn-login.paziente{background:var(--blue);color:#fff}
+.login-err{color:var(--red);font-size:13px;text-align:center;margin-top:8px;min-height:18px}
+.login-hint{font-size:12px;color:var(--text-sec);text-align:center;margin-top:12px}
+/* ── APP SHELL ── */
+.app{display:none;flex-direction:column;min-height:100vh}
+.app.visible{display:flex}
+.header{background:var(--bg-card);border-bottom:.5px solid var(--border);padding:13px 16px;padding-top:calc(13px + env(safe-area-inset-top));position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.header-left{display:flex;flex-direction:column;gap:2px}
+.header-title{font-size:18px;font-weight:800;color:var(--text)}
+.header-sub{font-size:12px;color:var(--text-sec)}
+.header-right{display:flex;align-items:center;gap:8px}
+.role-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+.role-badge.nutri{background:var(--purple-l);color:var(--purple-d)}
+.role-badge.paziente{background:var(--blue-l);color:var(--blue-d)}
+.btn-logout{width:30px;height:30px;border-radius:50%;border:.5px solid var(--border);background:none;color:var(--text-sec);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.kcal-pill{font-size:12px;font-weight:700;color:var(--blue-d);background:var(--blue-l);padding:4px 11px;border-radius:20px}
+/* ── TABS ── */
+.tab-bar{background:var(--bg-card);border-bottom:.5px solid var(--border);display:flex;overflow-x:auto;padding:0 8px;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{padding:11px 13px;font-size:13px;font-weight:600;color:var(--text-sec);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .2s,border-color .2s}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab.active.purple{color:var(--purple);border-bottom-color:var(--purple)}
+/* ── CONTENT ── */
+.content{padding:12px;max-width:600px;margin:0 auto;flex:1;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.screen{display:none}.screen.active{display:block}
+/* ── DAY SEL ── */
+.day-sel{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.day-sel::-webkit-scrollbar{display:none}
+.day-btn{flex-shrink:0;background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--rs);padding:7px 11px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;color:var(--text-sec);transition:all .2s}
+.day-btn.active{background:var(--blue-l);border-color:var(--blue);color:var(--blue-d)}
+.day-name{display:block;font-size:10px;margin-bottom:2px}
+.day-num{display:block;font-size:16px}
+.day-dot{display:block;width:4px;height:4px;border-radius:50%;background:var(--blue);margin:3px auto 0}
+/* ── MEAL CARDS ── */
+.meal-card{background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.meal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.meal-icon-wrap{display:flex;align-items:center;gap:10px}
+.meal-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.meal-name-txt{font-size:15px;font-weight:700;color:var(--text)}
+.meal-time{font-size:12px;color:var(--text-sec);margin-top:1px}
+.check-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--bg-card);color:transparent;transition:all .2s;flex-shrink:0}
+.check-btn.done{background:var(--green);border-color:var(--green);color:#fff}
+.food-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.food-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-sec);border-radius:var(--rs)}
+.food-name{font-size:13px;color:var(--text);font-weight:600;flex:1}
+.food-qty{font-size:12px;color:var(--text-sec);white-space:nowrap;margin:0 6px}
+.food-kcal-sm{font-size:11px;color:var(--blue-d);background:var(--blue-l);padding:2px 6px;border-radius:10px;white-space:nowrap}
+.food-del{width:24px;height:24px;border-radius:50%;background:none;border:none;color:var(--text-sec);font-size:14px;cursor:pointer;flex-shrink:0}
+.macros-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px}
+.chip-p{background:var(--blue-l);color:var(--blue-d)}
+.chip-c{background:var(--amber-l);color:var(--amber-d)}
+.chip-f{background:var(--coral-l);color:var(--coral)}
+.chip-fi{background:var(--green-l);color:var(--green-d)}
+.note-box{background:var(--green-l);border-left:3px solid var(--green);border-radius:0 var(--rs) var(--rs) 0;padding:8px 10px;margin-bottom:8px}
+.note-text{font-size:12px;color:var(--green-d);line-height:1.5}
+.add-row{display:flex;gap:6px}
+.btn-add{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border:1.5px dashed var(--border);border-radius:var(--rs);background:none;color:var(--text-sec);font-size:13px;cursor:pointer;transition:all .2s}
+.btn-add:active,.btn-add:hover{background:var(--blue-l);color:var(--blue);border-color:var(--blue)}
+.btn-note{padding:9px 12px;border:1.5px dashed var(--border);border-radius:var(--rs);background:none;color:var(--text-sec);font-size:13px;cursor:pointer;transition:all .2s}
+.readonly-badge{text-align:center;padding:10px;color:var(--text-sec);font-size:12px;background:var(--bg-sec);border-radius:var(--rs);margin-top:6px}
+/* ── SECTION TITLE ── */
+.sec-title{font-size:11px;font-weight:800;color:var(--text-sec);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 8px}
+/* ── CARDS GENERICI ── */
+.card{background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.card-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.card-desc{font-size:13px;color:var(--text-sec);margin-bottom:12px;line-height:1.5}
+/* ── WEEK ── */
+.week-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.week-card{background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow)}
+.week-card:active{transform:scale(.98)}
+.week-card.today-c{border-color:var(--blue);border-width:1.5px}
+.wc-day{font-size:13px;font-weight:700;color:var(--text)}
+.wc-date{font-size:11px;color:var(--text-sec);margin-bottom:6px}
+.wc-kcal{font-size:20px;font-weight:700;color:var(--text)}
+.wc-kcal-lbl{font-size:10px;color:var(--text-sec)}
+.wc-prog{display:flex;gap:2px;margin-top:8px}
+.wc-seg{height:3px;flex:1;border-radius:2px}
+.wc-dots{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.wc-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+.wc-dot.done{background:var(--green)}
+/* ── NUTRIENTI ── */
+.macro-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.macro-stat{background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center;box-shadow:var(--shadow)}
+.macro-val{font-size:22px;font-weight:700;color:var(--text)}
+.macro-unit{font-size:11px;color:var(--text-sec);font-weight:400}
+.macro-lbl{font-size:11px;color:var(--text-sec);margin:2px 0 6px}
+.macro-bar{width:100%;height:5px;background:var(--bg-sec);border-radius:3px;overflow:hidden}
+.macro-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.macro-pct{font-size:10px;color:var(--text-sec);margin-top:3px}
+.breakdown-card{background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.breakdown-title{font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)}
+.bdr{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bd-icon{font-size:16px;width:24px;text-align:center}
+.bd-name{font-size:13px;color:var(--text);flex:1}
+.bd-kcal{font-size:13px;font-weight:700;color:var(--text)}
+.bd-bar-w{width:60px;height:4px;background:var(--bg-sec);border-radius:2px}
+.bd-bar{height:4px;border-radius:2px;background:var(--blue)}
+.tip-card{background:var(--blue-l);border:.5px solid rgba(55,138,221,.2);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.tip-title{font-size:13px;font-weight:700;color:var(--blue-d);margin-bottom:5px}
+.tip-text{font-size:13px;color:var(--blue);line-height:1.6}
+/* ── ASSISTENTE ── */
+/* ── NUTRIZIONISTA PANEL ── */
+.patient-list{display:flex;flex-direction:column;gap:8px}
+.patient-card{background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
+.patient-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.patient-name{font-size:15px;font-weight:700;color:var(--text)}
+.patient-code{font-size:12px;font-weight:700;color:var(--purple-d);background:var(--purple-l);padding:3px 9px;border-radius:20px;letter-spacing:.05em}
+.patient-meta{font-size:12px;color:var(--text-sec);margin-bottom:10px}
+.patient-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-sm{padding:7px 12px;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .2s}
+.btn-sm-blue{background:var(--blue-l);color:var(--blue-d)}
+.btn-sm-purple{background:var(--purple-l);color:var(--purple-d)}
+.btn-sm-red{background:var(--red-l);color:var(--red)}
+.btn-sm-green{background:var(--green-l);color:var(--green-d)}
+.btn-sm-amber{background:var(--amber-l);color:var(--amber-d)}
+.nutri-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.nstat{background:var(--bg-card);border:.5px solid var(--border);border-radius:var(--rs);padding:10px;text-align:center;box-shadow:var(--shadow)}
+.nstat-val{font-size:22px;font-weight:800;color:var(--text)}
+.nstat-lbl{font-size:10px;color:var(--text-sec);margin-top:2px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-sec)}
+.empty-state-icon{font-size:48px;margin-bottom:12px}
+.empty-state-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}
+.empty-state-sub{font-size:13px;line-height:1.6}
+/* ── CONDIVIDI ── */
+.btn-act{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:var(--rs);font-size:14px;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px;border:none;transition:all .2s}
+.btn-act:last-child{margin-bottom:0}
+.btn-rst{background:var(--red-l);color:var(--red)}
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:.5px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 10px;border-radius:var(--rs);min-width:48px}
+.nav-icon{font-size:21px;line-height:1}
+.nav-lbl{font-size:10px;font-weight:700;color:var(--text-sec)}
+.nav-item.active .nav-lbl{color:var(--blue)}
+.nav-item.active.purple-nav .nav-lbl{color:var(--purple)}
+/* ── MODALS ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg-card);border-radius:20px 20px 0 0;padding:8px 20px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:600px;max-height:88vh;overflow-y:auto;overflow-x:hidden}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:8px auto 16px}
+.modal-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:14px}
+.lbl{font-size:12px;font-weight:700;color:var(--text-sec);margin-bottom:5px;display:block}
+.inp{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;background:var(--bg-sec);color:var(--text);outline:none;margin-bottom:10px;transition:border-color .2s;font-family:inherit}
+.inp:focus{border-color:var(--blue)}
+.inp-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.inp-row .inp{margin-bottom:0}
+.textarea-inp{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;background:var(--bg-sec);color:var(--text);outline:none;resize:vertical;min-height:80px;font-family:inherit;margin-bottom:12px}
+.textarea-inp:focus{border-color:var(--blue)}
+.btn-full{width:100%;padding:13px;border-radius:var(--rs);font-size:15px;font-weight:700;cursor:pointer;border:none;margin-bottom:8px;transition:all .2s}
+.btn-full:last-child{margin-bottom:0}
+.btn-prim{background:var(--blue);color:#fff}
+.btn-prim.purple{background:var(--purple)}
+.btn-sec{background:var(--bg-sec);color:var(--text)}
+/* ── SEARCH AUTOCOMPLETE ── */
+.search-wrap{position:relative;margin-bottom:10px}
+.search-inp{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;background:var(--bg-sec);color:var(--text);outline:none;transition:border-color .2s;font-family:inherit}
+.search-inp:focus{border-color:var(--blue);background:var(--bg-card)}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;color:var(--text-sec)}
+.search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;color:var(--text-sec);background:none;border:none;display:none;padding:2px}
+.suggestions{position:fixed;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;max-height:260px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.suggestions.open{display:block}
+.sugg-item{padding:10px 14px;cursor:pointer;border-bottom:.5px solid var(--border);transition:background .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.sugg-item:last-child{border-bottom:none}
+.sugg-item:active,.sugg-item.active{background:var(--blue-l)}
+.sugg-name{font-size:14px;font-weight:600;color:var(--text)}
+.sugg-cat{font-size:11px;color:var(--text-sec);margin-top:1px}
+.sugg-macros{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.sugg-chip{font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px}
+.sugg-empty{padding:16px;text-align:center;color:var(--text-sec);font-size:13px}
+.sel-food-box{background:var(--green-l);border:.5px solid var(--green);border-radius:var(--rs);padding:10px 14px;margin-bottom:10px;display:none}
+.sel-food-box.vis{display:block}
+.sf-name{font-size:14px;font-weight:700;color:var(--green-d)}
+.sf-macros{font-size:12px;color:var(--green-d);margin-top:3px}
+.qty-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.qty-preset{padding:5px 11px;border:.5px solid var(--border);border-radius:20px;font-size:12px;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg-sec);transition:all .2s}
+.qty-preset.active{background:var(--blue-l);color:var(--blue-d);border-color:var(--blue)}
+.manual-toggle{font-size:12px;color:var(--blue);cursor:pointer;text-align:center;margin:8px 0;text-decoration:underline}
+.manual-sec{display:none}.manual-sec.open{display:block}
+/* ── MISC ── */
+.toast{position:fixed;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.divider{height:.5px;background:var(--border);margin:12px 0}
+.code-big{font-family:monospace;font-size:22px;font-weight:800;letter-spacing:.15em;color:var(--purple-d);background:var(--purple-l);border-radius:var(--rs);padding:10px 16px;text-align:center;margin:8px 0}
+.install-banner{background:linear-gradient(135deg,#0d2235,#1a3a5c);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:none;align-items:center;gap:12px}
+.install-banner.vis{display:flex}
+.inst-text{flex:1}
+.inst-title{font-size:13px;font-weight:700;color:#fff}
+.inst-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:2px}
+.btn-inst{background:#fff;color:#0d2235;border:none;border-radius:var(--rs);padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap}
+select.inp{appearance:none;-webkit-appearance:none}
+
+/* ── WEEK NAV ── */
+.week-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.week-nav-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.week-nav-btn:active{background:var(--blue-l);color:var(--blue);border-color:var(--blue)}
+.week-nav-label{flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--text)}
+.diet-key-switch{display:flex;gap:6px;margin-bottom:8px}
+.dks-btn{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--bg-sec);color:var(--text-sec);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.dks-btn.active{background:var(--purple-l);color:var(--purple-d);border-color:var(--purple)}
+
+/* ── PRINT STYLES ── */
+@media print {
+  body { background: white !important; padding: 0 !important; font-size: 12px; }
+  .header, .tab-bar, .bottom-nav,
+  .btn-add, .btn-note, .food-del, .check-btn, .add-row,
+  .modal-bg, #debugBanner, .install-banner, #installBanner { display: none !important; }
+  .app { display: block !important; }
+  .content { padding: 0 !important; max-width: 100% !important; padding-bottom: 0 !important; }
+  .screen { display: block !important; }
+  #tab-oggi, #tab-settimana, #tab-nutrienti, #tab-pazienti, #tab-impostazioni { display: none !important; }
+  #print-area { display: block !important; }
+  .print-page { page-break-after: always; padding: 16px; }
+  .print-page:last-child { page-break-after: avoid; }
+  .print-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #378ADD; padding-bottom: 10px; }
+  .print-header h1 { font-size: 20px; color: #0C447C; margin-bottom: 4px; }
+  .print-header p { font-size: 12px; color: #6b7280; }
+  .print-day { margin-bottom: 14px; break-inside: avoid; }
+  .print-day-title { font-size: 14px; font-weight: 800; color: #0C447C; background: #E6F1FB; padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; }
+  .print-pasto { margin-bottom: 6px; padding-left: 10px; }
+  .print-pasto-title { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }
+  .print-food { font-size: 12px; color: #1a1a1a; padding: 2px 0; border-bottom: .5px solid #f0f0f0; display: flex; justify-content: space-between; }
+  .print-food-name { flex: 1; }
+  .print-food-qty { color: #6b7280; margin: 0 8px; }
+  .print-food-kcal { color: #0C447C; font-weight: 600; white-space: nowrap; }
+  .print-nota { font-size: 11px; color: #3B6D11; background: #EAF3DE; padding: 4px 8px; border-radius: 4px; margin-top: 4px; }
+  .print-macros { font-size: 11px; color: #6b7280; margin-top: 4px; padding-left: 10px; }
+  .print-day-totals { font-size: 11px; font-weight: 700; color: #0C447C; text-align: right; margin-top: 4px; }
+  .print-week-summary { margin-top: 12px; }
+  .print-week-row { display: flex; gap: 8px; margin-bottom: 4px; font-size: 12px; align-items: center; }
+  .print-week-day { width: 90px; font-weight: 700; }
+  .print-week-kcal { width: 70px; color: #0C447C; font-weight: 600; }
+  .print-week-bar { flex: 1; height: 8px; background: #E6F1FB; border-radius: 4px; overflow: hidden; }
+  .print-week-fill { height: 100%; background: #378ADD; border-radius: 4px; }
+  .no-print { display: none !important; }
+}
+#print-area { display: none; }
+</style>
+  <!-- Firebase CDN (compat version — no ES modules needed) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<!-- DEBUG BANNER - mostra errori visibili -->
+<div id="debugBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#E24B4A;color:white;padding:10px 14px;font-size:12px;font-family:monospace;word-break:break-all;max-height:40vh;overflow-y:auto"></div>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-logo">🥗</div>
+  <div class="login-title">La Mia Dieta</div>
+  <div class="login-sub">Piano alimentare personalizzato</div>
+  <div class="login-card" id="loginCard">
+    <div class="role-tabs">
+      <button class="role-tab active" id="tabNutri" onclick="setLoginRole('nutrizionista')">🩺 Nutrizionista</button>
+      <button class="role-tab" id="tabPaz" onclick="setLoginRole('paziente')">👤 Paziente</button>
+    </div>
+    <div id="loginNutriFields">
+      <div class="login-field"><label class="login-lbl">Email / Username</label><input class="login-inp" id="nutriUser" placeholder="es. dott.rossi" autocapitalize="none"></div>
+      <div class="login-field"><label class="login-lbl">Password</label><input class="login-inp" id="nutriPass" type="password" placeholder="••••••••"></div>
+    </div>
+    <div id="loginPazFields" style="display:none">
+      <div class="login-field"><label class="login-lbl">Codice accesso personale</label><input class="login-inp" id="pazCode" placeholder="es. MARIO-2024" autocapitalize="characters" style="letter-spacing:.1em;font-weight:700"></div>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn-login nutri" id="btnLogin" onclick="doLogin()">Accedi</button>
+    <div class="login-hint" id="loginHint">Prima volta? Registra un account nutrizionista.</div>
+    <div style="text-align:center;margin-top:8px"><a href="#" onclick="showRegister()" style="font-size:12px;color:var(--blue)">📝 Registra account nutrizionista</a></div>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div class="app" id="appShell">
+  <div id="installBanner" class="install-banner">
+    <div class="inst-text"><div class="inst-title">📱 Installa l'app</div><div class="inst-sub">Aggiungi alla home screen per usarla offline</div></div>
+    <button class="btn-inst" onclick="installPWA()">Installa</button>
+  </div>
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title" id="hTitle">🥗 La Mia Dieta</div>
+      <div class="header-sub" id="hSub"></div>
+    </div>
+    <div class="header-right">
+      <span class="kcal-pill" id="hKcal" style="display:none"></span>
+      <span class="role-badge" id="hRoleBadge"></span>
+      <button class="btn-logout" onclick="doLogout()" title="Esci">↩</button>
+    </div>
+  </div>
+  <div class="tab-bar" id="tabBar"></div>
+  <div class="content" id="mainContent">
+    <div id="tab-oggi" class="screen active"></div>
+    <div id="tab-settimana" class="screen"></div>
+    <div id="tab-nutrienti" class="screen"></div>
+    <div id="tab-pazienti" class="screen"></div>
+    <div id="tab-impostazioni" class="screen"></div>
+  </div>
+    <div id="tab-codice" class="screen"></div>
+    <div id="tab-configAB" class="screen"></div>
+  <!-- PRINT AREA - hidden on screen, shown only when printing -->
+  <div id="print-area"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottomNav" style="display:none"></div>
+
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- REGISTRA NUTRIZIONISTA -->
+<div class="modal-bg" id="modalRegister">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📝 Nuovo account nutrizionista</div>
+    <label class="lbl">Nome e Cognome</label>
+    <input class="inp" id="regNome" placeholder="Dott.ssa Maria Rossi">
+    <label class="lbl">Username (per il login)</label>
+    <input class="inp" id="regUser" placeholder="es. dott.rossi" autocapitalize="none">
+    <label class="lbl">Password</label>
+    <input class="inp" type="password" id="regPass" placeholder="Minimo 6 caratteri">
+    <label class="lbl">Conferma password</label>
+    <input class="inp" type="password" id="regPass2" placeholder="Ripeti la password">
+    <div class="login-err" id="regErr"></div>
+    <button class="btn-full btn-prim purple" onclick="doRegister()">Crea account</button>
+    <button class="btn-full btn-sec" onclick="closeModal('modalRegister')">Annulla</button>
+  </div>
+</div>
+
+<!-- AGGIUNGI PAZIENTE -->
+<div class="modal-bg" id="modalAddPatient">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👤 Nuovo paziente</div>
+    <label class="lbl">Nome paziente</label>
+    <input class="inp" id="pNome" placeholder="es. Mario Rossi">
+    <label class="lbl">Note (età, obiettivo, patologie...)</label>
+    <textarea class="textarea-inp" id="pNote" placeholder="es. 35 anni, obiettivo dimagrimento, intollerante al lattosio"></textarea>
+    <label class="lbl">Obiettivo calorico giornaliero (kcal)</label>
+    <input class="inp" type="number" id="pKcal" placeholder="1800" inputmode="numeric">
+    <div class="inp-row">
+      <div><label class="lbl">Proteine target (g)</label><input class="inp" type="number" id="pProt" placeholder="120" inputmode="numeric"></div>
+      <div><label class="lbl">Carboidrati target (g)</label><input class="inp" type="number" id="pCarb" placeholder="200" inputmode="numeric"></div>
+    </div>
+    <label class="lbl">Grassi target (g)</label>
+    <input class="inp" type="number" id="pFat" placeholder="60" inputmode="numeric">
+    <button class="btn-full btn-prim purple" onclick="savePatient()">Crea paziente</button>
+    <button class="btn-full btn-sec" onclick="closeModal('modalAddPatient')">Annulla</button>
+  </div>
+</div>
+
+<!-- CODICE PAZIENTE -->
+<div class="modal-bg" id="modalPatientCode">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔑 Codice accesso paziente</div>
+    <p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;line-height:1.6">Condividi questo codice con il tuo paziente. Lo userà per accedere alla sua dieta dall'app.</p>
+    <div class="code-big" id="modalCodeText"></div>
+    <p style="font-size:12px;color:var(--text-sec);text-align:center;margin-bottom:16px" id="modalCodeName"></p>
+    <button class="btn-full btn-prim purple" onclick="copyCode()">📋 Copia codice</button>
+    <button class="btn-full btn-sm btn-sm-green" onclick="shareCode()" id="btnShareCode" style="width:100%;padding:13px;font-size:15px;margin-bottom:8px;display:none">📲 Condividi codice</button>
+    <button class="btn-full btn-sec" onclick="closeModal('modalPatientCode')">Chiudi</button>
+  </div>
+</div>
+
+<!-- MODIFICA PAZIENTE -->
+<div class="modal-bg" id="modalEditPatient">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Modifica paziente</div>
+    <label class="lbl">Nome paziente</label>
+    <input class="inp" id="epNome" placeholder="Nome paziente">
+    <label class="lbl">Note</label>
+    <textarea class="textarea-inp" id="epNote"></textarea>
+    <label class="lbl">Obiettivo calorico (kcal)</label>
+    <input class="inp" type="number" id="epKcal" inputmode="numeric">
+    <div class="inp-row">
+      <div><label class="lbl">Proteine (g)</label><input class="inp" type="number" id="epProt" inputmode="numeric"></div>
+      <div><label class="lbl">Carboidrati (g)</label><input class="inp" type="number" id="epCarb" inputmode="numeric"></div>
+    </div>
+    <label class="lbl">Grassi (g)</label>
+    <input class="inp" type="number" id="epFat" inputmode="numeric">
+    <button class="btn-full btn-prim purple" onclick="saveEditPatient()">Salva modifiche</button>
+    <button class="btn-full btn-sec" onclick="closeModal('modalEditPatient')">Annulla</button>
+  </div>
+</div>
+
+<!-- AGGIUNGI ALIMENTO -->
+<div class="modal-bg" id="modalFood">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalFoodTitle">Aggiungi alimento</div>
+    <label class="lbl">Cerca nel database (293 alimenti)</label>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-inp" id="searchInp" placeholder="es. petto di pollo, riso, mela..." autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+    </div>
+    <div class="suggestions" id="suggestions"></div>
+    <div class="sel-food-box" id="selFoodBox">
+      <div class="sf-name" id="selFoodName"></div>
+      <div class="sf-macros" id="selFoodMacros"></div>
+    </div>
+    <div id="qtySection" style="display:none">
+      <label class="lbl">Quantità</label>
+      <div class="qty-presets" id="qtyPresets"></div>
+      <input type="number" class="inp" id="inQtyG" placeholder="Grammi personalizzati" inputmode="decimal" oninput="onQtyChange()">
+    </div>
+    <div class="manual-toggle" id="manualToggle" onclick="toggleManual()">✏️ Inserimento manuale (alimento non trovato)</div>
+    <div class="manual-sec" id="manualSec">
+      <label class="lbl">Nome alimento</label><input type="text" class="inp" id="inName" placeholder="es. Pizza fatta in casa">
+      <label class="lbl">Quantità</label><input type="text" class="inp" id="inQtyFree" placeholder="es. 1 porzione, 2 fette...">
+      <div class="inp-row"><div><label class="lbl">Kcal</label><input type="number" class="inp" id="inKcal" placeholder="250" inputmode="decimal"></div><div><label class="lbl">Proteine (g)</label><input type="number" class="inp" id="inProt" placeholder="10" inputmode="decimal"></div></div>
+      <div class="inp-row"><div><label class="lbl">Carboidrati (g)</label><input type="number" class="inp" id="inCarb" placeholder="40" inputmode="decimal"></div><div><label class="lbl">Grassi (g)</label><input type="number" class="inp" id="inFat" placeholder="8" inputmode="decimal"></div></div>
+    </div>
+    <button class="btn-full btn-prim" style="margin-top:8px" onclick="saveFood()">Aggiungi al piano</button>
+    <button class="btn-full btn-sec" onclick="closeModal('modalFood')">Annulla</button>
+  </div>
+</div>
+
+<!-- NOTE -->
+<div class="modal-bg" id="modalNote">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalNoteTitle">Nota per il pasto</div>
+    <label class="lbl">Consiglio / nota per il paziente</label>
+    <textarea class="textarea-inp" id="inNote" placeholder="es. Condire con olio EVO, cuocere al vapore, evitare i fritti..."></textarea>
+    <button class="btn-full btn-prim" onclick="saveNote()">Salva nota</button>
+    <button class="btn-full btn-sec" onclick="closeModal('modalNote')">Annulla</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+
+// ── ERROR INTERCEPTOR ────────────────────────────────────────────────────────
+window.onerror = function(msg, src, line, col, err) {
+  const b = document.getElementById('debugBanner');
+  if(b){ b.style.display='block'; b.innerHTML += '<b>JS ERROR:</b> '+msg+' (line '+line+')<br>'; }
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e){
+  const b = document.getElementById('debugBanner');
+  if(b){ b.style.display='block'; b.innerHTML += '<b>PROMISE ERROR:</b> '+(e.reason?.message||e.reason)+'<br>'; }
+});
+// Test that basic click works
+document.addEventListener('DOMContentLoaded', function(){
+  const b = document.getElementById('debugBanner');
+  // Test Firebase availability
+  if(typeof firebase === 'undefined'){
+    b.style.display='block';
+    b.innerHTML += '<b>❌ Firebase non caricato</b> — problema CDN o connessione<br>';
+  } else {
+    b.innerHTML += '✅ Firebase OK (v9 compat)<br>';
+    b.style.display='block';
+    setTimeout(()=>{ if(b.innerHTML.includes('✅ Firebase OK') && !b.innerHTML.includes('❌')){b.style.display='none';} }, 3000);
+  }
+});
+// ── FIREBASE (loaded via CDN scripts in <head>) ───────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyARCMANUUJY3oCbKwR0ii9UeJSu-0pl8w8",
+  authDomain: "app-dieta-c4415.firebaseapp.com",
+  projectId: "app-dieta-c4415",
+  storageBucket: "app-dieta-c4415.firebasestorage.app",
+  messagingSenderId: "119305928704",
+  appId: "1:119305928704:web:a04c20375879a995b358e5"
+};
+const fbApp = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ── FIRESTORE HELPERS ─────────────────────────────────────────────────────────
+async function fsGet(col, id) {
+  const snap = await db.collection(col).doc(id).get();
+  return snap.exists ? { id: snap.id, ...snap.data() } : null;
+}
+async function fsSet(col, id, data) {
+  await db.collection(col).doc(id).set(data, { merge: true });
+}
+async function fsDelete(col, id) {
+  await db.collection(col).doc(id).delete();
+}
+async function fsQuery(col, field, value) {
+  const snap = await db.collection(col).where(field, '==', value).get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ── STORAGE KEYS (session only — local) ──────────────────────────────────────
+
+// DATABASE ALIMENTI - Valori per 100g
+// Fonte: CREA (ex INRAN) - Tabelle di Composizione degli Alimenti italiani
+// Struttura: [nome, kcal, proteine, carboidrati, grassi, fibra, categoria]
+</script>
+<script src="food-db.js"></script>
+
+<script src="app.js"></script>
+</body>
+</html>
