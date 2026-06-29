@@ -1653,19 +1653,41 @@ async function creaAccountTest(){
     }
   ];
 
-  await Promise.all(misurazioniTest.map(function(m){
+  // Salva misurazioni una alla volta con feedback
+  showToast('⏳ Salvataggio misurazioni (0/'+misurazioniTest.length+')...', 10000);
+  var salvate = 0;
+  var errori = [];
+  for(var mi=0; mi<misurazioniTest.length; mi++){
+    var m = misurazioniTest[mi];
     var docId = m.id;
-    var toSave = Object.assign({}, m, { patId:'test-paz-001', nutriId:'test-nutri-001', updatedAt:new Date().toISOString() });
+    var toSave = Object.assign({}, m, {
+      patId: 'test-paz-001',
+      nutriId: 'test-nutri-001',
+      updatedAt: new Date().toISOString()
+    });
     delete toSave.id;
-    return db.collection('misurazioni').doc(docId).set(toSave);
-  }));
+    try {
+      await db.collection('misurazioni').doc(docId).set(toSave);
+      salvate++;
+      showToast('⏳ Salvate '+salvate+'/'+misurazioniTest.length+' misurazioni...', 8000);
+    } catch(me) {
+      console.error('Errore misurazione '+docId+':', me);
+      errori.push(docId+': '+me.message);
+    }
+  }
 
-  showToast('✅ Account test pronti! Accedi ora.',4000);
+  if(errori.length > 0){
+    showToast('⚠️ '+salvate+' misurazioni salvate, '+errori.length+' errori: '+errori[0], 8000);
+    console.error('Errori misurazioni:', errori);
+  } else {
+    showToast('✅ Account test pronti! '+salvate+' misurazioni caricate.',4000);
+  }
+
   setTimeout(function(){
-    alert('✅ Account test creati!\n\n👨‍⚕️ NUTRIZIONISTA\nUsername: dott.bianchi\nPassword: test1234\n\n👤 PAZIENTE\nCodice accesso: GIUSEPPE-2025\n\nAccedi ora con le credenziali sopra.');
+    alert('✅ Account test creati!\n\n👨‍⚕️ NUTRIZIONISTA\nUsername: dott.bianchi\nPassword: test1234\n\n👤 PAZIENTE\nCodice accesso: GIUSEPPE-2025\n\nMisurazioni caricate: '+salvate+'/'+misurazioniTest.length);
   },500);
   } catch(err) {
-    showToast('❌ Errore: '+err.message, 5000);
+    showToast('❌ Errore generale: '+err.message, 8000);
     console.error('Test account error:', err);
   }
 }
