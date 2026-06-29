@@ -27,9 +27,9 @@ var TIPS=[
 
 // ── STORAGE ───────────────────────────────────────────────────────────────────
 var K_SESSION='nd_session_v4';
-function getSession(){try{return JSON.parse(sessionStorage.getItem(K_SESSION)||'null');}catch(e){return null;}}
-function saveSession(s){sessionStorage.setItem(K_SESSION,JSON.stringify(s));}
-function clearSession(){sessionStorage.removeItem(K_SESSION);}
+function getSession(){try{return JSON.parse(localStorage.getItem(K_SESSION)||'null');}catch(e){return null;}}
+function saveSession(s){localStorage.setItem(K_SESSION,JSON.stringify(s));}
+function clearSession(){localStorage.removeItem(K_SESSION);}
 
 // ── IN-MEMORY CACHE ───────────────────────────────────────────────────────────
 var _patients=[];
@@ -691,46 +691,69 @@ async function deletePatient(patId){
 }
 
 // ── IMPOSTAZIONI ──────────────────────────────────────────────────────────────
+function getPrintColors(){
+  try{return JSON.parse(localStorage.getItem('print_colors_'+S.nutriId)||'null')||{primary:'#1a1a1a',accent:'#374151'};}
+  catch(e){return{primary:'#1a1a1a',accent:'#374151'};}
+}
+function setPrintColor(key,val){
+  var c=getPrintColors();c[key]=val;
+  localStorage.setItem('print_colors_'+S.nutriId,JSON.stringify(c));
+  renderImpostazioni();
+}
+function resetPrintColors(){
+  localStorage.removeItem('print_colors_'+S.nutriId);
+  renderImpostazioni();
+  showToast('↩ Colori ripristinati');
+}
+
 function renderImpostazioni(){
-  var logo = localStorage.getItem('nutri_logo_'+S.nutriId)||'';
-  var nutriNome = '';
-  var nutriUser = '';
-  // Try to get nutri info from cached session
-  try {
-    var sess = JSON.parse(sessionStorage.getItem('nd_session_v4')||'null');
-    if(sess && sess.nutriNome) nutriNome = sess.nutriNome;
-    if(sess && sess.nutriUser) nutriUser = sess.nutriUser;
-  } catch(e){}
+  var logo=localStorage.getItem('nutri_logo_'+S.nutriId)||'';
+  var pc=getPrintColors();
+  var PP=['#1a1a1a','#1B4F8A','#1D7A5F','#8B2252','#7C3AED','#B45309','#0E7490','#374151'];
+  var PA=['#6B7280','#3B82F6','#10B981','#EC4899','#8B5CF6','#F59E0B','#06B6D4','#EF4444'];
+  var swP=PP.map(function(c){return '<div class="color-swatch'+(pc.primary===c?' selected':'')+'" style="background:'+c+'" onclick="setPrintColor(\'primary\',\''+c+'\')"></div>';}).join('')
+    +'<div class="color-swatch cs-custom" onclick="el(\'cpPrimary\').click()">+</div>';
+  var swA=PA.map(function(c){return '<div class="color-swatch'+(pc.accent===c?' selected':'')+'" style="background:'+c+'" onclick="setPrintColor(\'accent\',\''+c+'\')"></div>';}).join('')
+    +'<div class="color-swatch cs-custom" onclick="el(\'cpAccent\').click()">+</div>';
 
-  var html='<div class="sec-title">Il mio account</div>'
-    +'<div class="card">'
-    +'<div class="card-title">🩺 Nutrizionista</div>'
-    +'<div style="font-size:13px;color:var(--text-sec);margin-top:4px">Pazienti seguiti: <strong>'+getPatientsOf(S.nutriId).length+'</strong></div>'
-    +'</div>'
+  var html=''
+    +'<div class="sec-title">Il mio account</div>'
+    +'<div class="card"><div class="card-title">🩺 Nutrizionista</div>'
+    +'<div style="font-size:13px;color:var(--text-sec);margin-top:4px">Pazienti seguiti: <strong>'+getPatientsOf(S.nutriId).length+'</strong></div></div>'
 
-    // ── LOGO SECTION ──
     +'<div class="sec-title">Logo studio</div>'
-    +'<div class="card">'
-    +'<div class="card-desc">Il logo apparirà in alto a sinistra su ogni stampa del piano alimentare. Formati supportati: PNG, JPG, SVG. Dimensione consigliata: 400×120px.</div>'
-
-    // Preview logo attuale
+    +'<div class="card"><div class="card-desc">Il logo appare in alto su ogni stampa. PNG/JPG, max 1.2MB.</div>'
     +(logo
-      ? '<div style="border:1px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center;margin-bottom:12px;background:var(--bg-sec)">'
-        +'<img id="logoPreview" src="'+logo+'" style="max-height:60px;max-width:200px;object-fit:contain" alt="Logo studio">'
-        +'</div>'
-        +'<div style="display:flex;gap:8px;margin-bottom:8px">'
-        +'<button class="btn-act btn-exp" style="flex:1" onclick="triggerLogoUpload()">🔄 Cambia logo</button>'
-        +'<button class="btn-act btn-rst" style="flex:0;padding:12px 16px" onclick="removeLogo()">🗑️</button>'
-        +'</div>'
-      : '<div style="border:2px dashed var(--border);border-radius:var(--rs);padding:24px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="triggerLogoUpload()">'
-        +'<div style="font-size:32px;margin-bottom:8px">🖼️</div>'
-        +'<div style="font-size:14px;font-weight:700;color:var(--text)">Carica il logo del tuo studio</div>'
-        +'<div style="font-size:12px;color:var(--text-sec);margin-top:4px">Tocca per selezionare un\'immagine</div>'
-        +'</div>'
+      ?'<div style="border:1px solid var(--border);border-radius:var(--rs);padding:10px;text-align:center;margin-bottom:10px;background:var(--bg-sec)">'
+        +'<img src="'+logo+'" style="max-height:56px;max-width:200px;object-fit:contain" alt="Logo"></div>'
+        +'<div style="display:flex;gap:8px"><button class="btn-act btn-exp" style="flex:1" onclick="triggerLogoUpload()">🔄 Cambia logo</button>'
+        +'<button class="btn-act btn-rst" style="flex:0;padding:12px 16px" onclick="removeLogo()">🗑️</button></div>'
+      :'<div style="border:2px dashed var(--border);border-radius:var(--rs);padding:20px;text-align:center;margin-bottom:10px;cursor:pointer" onclick="triggerLogoUpload()">'
+        +'<div style="font-size:28px;margin-bottom:6px">🖼️</div>'
+        +'<div style="font-size:13px;font-weight:700">Carica logo studio</div>'
+        +'<div style="font-size:12px;color:var(--text-sec);margin-top:2px">Tocca per scegliere</div></div>'
         +'<button class="btn-act btn-imp" onclick="triggerLogoUpload()">📁 Scegli immagine</button>'
     )
-    +'<input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="uploadLogo(event)">'
+    +'<input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="uploadLogo(event)"></div>'
+
+    +'<div class="sec-title">Colori stampa</div>'
+    +'<div class="card"><div class="card-desc">Scegli i colori per intestazioni e accenti nelle stampe dei piani alimentari.</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    +'<div><label class="lbl">Colore principale</label><div class="color-palette">'+swP+'</div>'
+    +'<input type="color" id="cpPrimary" style="display:none" value="'+pc.primary+'" oninput="setPrintColor(\'primary\',this.value)"></div>'
+    +'<div><label class="lbl">Colore accento</label><div class="color-palette">'+swA+'</div>'
+    +'<input type="color" id="cpAccent" style="display:none" value="'+pc.accent+'" oninput="setPrintColor(\'accent\',this.value)"></div>'
     +'</div>'
+    +'<label class="lbl">Anteprima stampa</label>'
+    +'<div style="border-radius:6px;overflow:hidden;margin-bottom:12px;border:1px solid var(--border)">'
+    +'<div style="background:'+pc.primary+';color:white;padding:7px 12px;font-size:12px;font-weight:700">Lunedì &nbsp;·&nbsp; 1.850 kcal | P 145g  C 185g  G 52g</div>'
+    +'<div style="padding:6px 12px;display:flex;justify-content:space-between;font-size:11px;background:#f9fafb">'
+    +'<span style="font-weight:700;color:#1a1a1a">Colazione &nbsp;07:30</span>'
+    +'<span style="color:'+pc.accent+';font-weight:700">455 kcal</span></div>'
+    +'<div style="padding:4px 12px 7px;font-size:10.5px;color:#555;background:#f9fafb;border-top:1px solid #f0f0f0">'
+    +'Fiocchi di avena 60g &nbsp;·&nbsp; Fage Total 0% 150g &nbsp;·&nbsp; Mirtilli 80g</div>'
+    +'</div>'
+    +'<button class="btn-act" style="background:var(--bg-sec);color:var(--text-sec);border:.5px solid var(--border)" onclick="resetPrintColors()">↩ Ripristina predefiniti</button></div>'
 
     +'<div class="sec-title">Dati</div>'
     +'<div class="card"><div class="card-title">⚠️ Cancella tutti i dati</div>'
@@ -738,8 +761,14 @@ function renderImpostazioni(){
     +'<button class="btn-act btn-rst" onclick="deleteAllData()">🗑️ Cancella tutti i dati</button></div>';
 
   setHtml('tab-impostazioni',html);
+  // Refresh logo from Firestore in background
+  if(S.nutriId){
+    loadLogoFromFirestore().then(function(freshLogo){
+      var cached=localStorage.getItem('nutri_logo_'+S.nutriId)||'';
+      if(freshLogo&&freshLogo!==cached){renderImpostazioni();}
+    });
+  }
 }
-
 function triggerLogoUpload(){ el('logoFileInput').click(); }
 
 async function uploadLogo(event){
@@ -1282,6 +1311,7 @@ function eseguiStampa(){
 function printDieta(patId){ openPrintModal(patId); }
 
 function printMultiWeek(patId, startDateStr, numWeeks){
+  var pc=S.nutriId?getPrintColors():{primary:'#1a1a1a',accent:'#374151'};
   var pat=getPatientById(patId);
   if(!pat){showToast('Paziente non trovato');return;}
   var obj=pat.obiettivi||{kcal:1800,p:150,c:180,f:55};
@@ -1361,7 +1391,7 @@ function printMultiWeek(patId, startDateStr, numWeeks){
     }
 
     // Titolo settimana
-    html+='<div style="background:#1a1a1a;color:white;padding:8px 14px;border-radius:4px;margin-bottom:12px;font-size:12px;font-weight:700;letter-spacing:.04em">'+weekLabel+'</div>';
+    html+='<div style="background:'+pc.primary+';color:white;padding:8px 14px;border-radius:4px;margin-bottom:12px;font-size:12px;font-weight:700;letter-spacing:.04em">'+weekLabel+'</div>';
 
     // Giorni
     for(var i=0;i<7;i++){
@@ -1373,7 +1403,7 @@ function printMultiWeek(patId, startDateStr, numWeeks){
 
       var dayDate=new Date(weekStart);dayDate.setDate(weekStart.getDate()+i);
 
-      html+='<div class="p-day"><div class="p-day-header">'
+      html+='<div class="p-day"><div class="p-day-header" style="background:'+pc.primary+'">'
         +'<span class="p-day-name">'+GG_FULL[i]+'&nbsp;<span style="font-weight:400;opacity:.6;font-size:10px">'+dayDate.getDate()+'/'+('0'+(dayDate.getMonth()+1)).slice(-2)+'</span></span>'
         +'<span class="p-day-kcal">'+tot.kcal+' kcal &nbsp;|&nbsp; P '+tot.p+'g &nbsp; C '+tot.c+'g &nbsp; G '+tot.f+'g</span>'
         +'</div><table class="p-meals-table">';
@@ -1563,6 +1593,9 @@ window.removeLogo = removeLogo;
 window.getNutriLogo = getNutriLogo;
 window.triggerLogoUpload = triggerLogoUpload;
 window.loadLogoFromFirestore = loadLogoFromFirestore;
+window.getPrintColors = getPrintColors;
+window.setPrintColor = setPrintColor;
+window.resetPrintColors = resetPrintColors;
 window.openPrintModal = openPrintModal;
 window.eseguiStampa = eseguiStampa;
 window.printMultiWeek = printMultiWeek;

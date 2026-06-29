@@ -245,6 +245,12 @@ select.inp{appearance:none;-webkit-appearance:none}
 .dks-btn{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--bg-sec);color:var(--text-sec);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
 .dks-btn.active{background:var(--purple-l);color:var(--purple-d);border-color:var(--purple)}
 
+.color-palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.color-swatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0}
+.color-swatch:hover{transform:scale(1.1);border-color:rgba(0,0,0,.3)}
+.color-swatch.selected{border-color:#fff;box-shadow:0 0 0 2px #378ADD,0 2px 6px rgba(0,0,0,.2);transform:scale(1.1)}
+.color-swatch.cs-custom{background:linear-gradient(135deg,#ff6b6b,#4ecdc4,#45b7d1);font-size:13px;font-weight:800;color:white;display:flex;align-items:center;justify-content:center}
+
 /* ── PRINT STYLES ── */
 @media print {
   @page { margin: 1.2cm 1.5cm; size: A4 portrait; }
