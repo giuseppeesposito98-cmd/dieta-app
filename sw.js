@@ -1,5 +1,5 @@
-// v24
-const CACHE_NAME = 'dieta-app-v24';
+// v25
+const CACHE_NAME = 'dieta-app-v25';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
   e.waitUntil(

@@ -284,14 +284,14 @@ function setupPazienteTabs(){
 }
 function setupNutriEditTabs(pat){
   el('tabBar').innerHTML='<div class="tab active purple" onclick="switchTab(\'oggi\',0);setNav(0)">📅 Dieta</div>'
-    +'<div class="tab" onclick="switchTab(\'settimana\',1);setNav(1)">📆 Settimana</div>'
-    +'<div class="tab" onclick="switchTab(\'nutrienti\',2);setNav(2)">📊 Nutrienti</div>'
-    +'<div class="tab" onclick="switchTab(\'configAB\',3);setNav(3)">🔄 Dieta A/B</div>'
+    +'<div class="tab" onclick="switchTab(\'settimana\',1);setNav(1)">📆 Sett.</div>'
+    +'<div class="tab" onclick="switchTab(\'configAB\',2);setNav(2)">🔄 A/B</div>'
+    +'<div class="tab" onclick="switchTab(\'monitoraggio\',3);setNav(3)">📏 Misure</div>'
     +'<div class="tab" onclick="backToPazienti()">← Pazienti</div>';
   el('bottomNav').innerHTML='<div class="nav-item active purple-nav" id="nav0" onclick="switchTab(\'oggi\',0);setNav(0)"><span class="nav-icon">📅</span><span class="nav-lbl">Dieta</span></div>'
     +'<div class="nav-item" id="nav1" onclick="switchTab(\'settimana\',1);setNav(1)"><span class="nav-icon">📆</span><span class="nav-lbl">Settimana</span></div>'
-    +'<div class="nav-item" id="nav2" onclick="switchTab(\'nutrienti\',2);setNav(2)"><span class="nav-icon">📊</span><span class="nav-lbl">Nutrienti</span></div>'
-    +'<div class="nav-item" id="nav3" onclick="switchTab(\'configAB\',3);setNav(3)"><span class="nav-icon">🔄</span><span class="nav-lbl">A/B</span></div>'
+    +'<div class="nav-item" id="nav2" onclick="switchTab(\'configAB\',2);setNav(2)"><span class="nav-icon">🔄</span><span class="nav-lbl">A/B</span></div>'
+    +'<div class="nav-item" id="nav3" onclick="switchTab(\'monitoraggio\',3);setNav(3)"><span class="nav-icon">📏</span><span class="nav-lbl">Misure</span></div>'
     +'<div class="nav-item" id="nav4" onclick="backToPazienti()"><span class="nav-icon">👥</span><span class="nav-lbl">Pazienti</span></div>';
   el('hTitle').textContent='✏️ '+pat.nome;
   el('hSub').textContent='Modifica piano alimentare';
@@ -307,6 +307,7 @@ function switchTab(tab,idx){
   if(tab==='nutrienti')renderNutrienti();
   if(tab==='codice')renderCodice();
   if(tab==='configAB')renderConfigAB();
+  if(tab==='monitoraggio')renderMonitoraggio();
   if(tab==='pazienti')renderPazienti();
   if(tab==='impostazioni')renderImpostazioni();
 }
@@ -1588,6 +1589,10 @@ async function creaAccountTest(){
 }
 
 window.creaAccountTest = creaAccountTest;
+window.openNuovaMisurazione = openNuovaMisurazione;
+window.openEditMisurazione = openEditMisurazione;
+window.saveMisurazioneFromModal = saveMisurazioneFromModal;
+window.confermaCancellaMisurazione = confermaCancellaMisurazione;
 window.uploadLogo = uploadLogo;
 window.removeLogo = removeLogo;
 window.getNutriLogo = getNutriLogo;
@@ -1618,3 +1623,482 @@ window.isDietaABActive = isDietaABActive;
   }
   el('loginScreen').style.display='flex';
 })();
+
+// ── MONITORAGGIO ANTROPOMETRICO ───────────────────────────────────────────────
+
+var MON = { editingId: null }; // id della misurazione in modifica
+
+// Campi misurazione — tutti i dati antropometrici professionali
+var MON_FIELDS = [
+  // Biometria base
+  { id:'peso',      label:'Peso',          unit:'kg',  step:'0.1', group:'base',    icon:'⚖️' },
+  { id:'altezza',   label:'Altezza',        unit:'cm',  step:'0.5', group:'base',    icon:'📏' },
+  { id:'bmi',       label:'BMI',            unit:'',    step:'0.01',group:'base',    icon:'📊', computed:true },
+  { id:'eta',       label:'Età',            unit:'anni',step:'1',   group:'base',    icon:'🎂' },
+  // Composizione corporea
+  { id:'fm_perc',   label:'% Massa Grassa', unit:'%',   step:'0.1', group:'comp',    icon:'🔴' },
+  { id:'fm_kg',     label:'Massa Grassa',   unit:'kg',  step:'0.1', group:'comp',    icon:'🔴', computed:true },
+  { id:'ffm_perc',  label:'% Massa Magra',  unit:'%',   step:'0.1', group:'comp',    icon:'🔵', computed:true },
+  { id:'ffm_kg',    label:'Massa Magra',    unit:'kg',  step:'0.1', group:'comp',    icon:'🔵', computed:true },
+  { id:'mm_kg',     label:'Massa Muscolare',unit:'kg',  step:'0.1', group:'comp',    icon:'💪' },
+  { id:'mm_perc',   label:'% Muscolare',    unit:'%',   step:'0.1', group:'comp',    icon:'💪', computed:true },
+  { id:'acqua_perc',label:'% Acqua',        unit:'%',   step:'0.1', group:'comp',    icon:'💧' },
+  { id:'acqua_kg',  label:'Acqua totale',   unit:'kg',  step:'0.1', group:'comp',    icon:'💧', computed:true },
+  { id:'osso_kg',   label:'Massa Ossea',    unit:'kg',  step:'0.01',group:'comp',    icon:'🦴' },
+  { id:'viscerale', label:'Grasso Viscerale',unit:'',   step:'0.1', group:'comp',    icon:'🫀' },
+  { id:'metabolismo',label:'Metabolismo Basale',unit:'kcal',step:'1',group:'comp',   icon:'🔥' },
+  // Circonferenze
+  { id:'vita',      label:'Vita',           unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'fianchi',   label:'Fianchi',        unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'whr',       label:'WHR (vita/fianchi)',unit:'', step:'0.01',group:'circ',    icon:'📐', computed:true },
+  { id:'torace',    label:'Torace',         unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'braccio_dx',label:'Braccio dx',     unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'braccio_sx',label:'Braccio sx',     unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'coscia_dx', label:'Coscia dx',      unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'coscia_sx', label:'Coscia sx',      unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'polpaccio_dx',label:'Polpaccio dx', unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'polpaccio_sx',label:'Polpaccio sx', unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'collo',     label:'Collo',          unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'addome',    label:'Addome',         unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  { id:'ombelico',  label:'All\'ombelico',  unit:'cm',  step:'0.5', group:'circ',    icon:'📐' },
+  // Pliche cutanee (plicometria)
+  { id:'plica_tricipite',label:'Plica Tricipite',unit:'mm',step:'0.5',group:'pliche',icon:'🤏' },
+  { id:'plica_bicipite', label:'Plica Bicipite', unit:'mm',step:'0.5',group:'pliche',icon:'🤏' },
+  { id:'plica_pettorale',label:'Plica Pettorale',unit:'mm',step:'0.5',group:'pliche',icon:'🤏' },
+  { id:'plica_addome',   label:'Plica Addominale',unit:'mm',step:'0.5',group:'pliche',icon:'🤏' },
+  { id:'plica_coscia',   label:'Plica Coscia',   unit:'mm',step:'0.5',group:'pliche',icon:'🤏' },
+  { id:'plica_sottoscapolare',label:'Sottoscapolare',unit:'mm',step:'0.5',group:'pliche',icon:'🤏' },
+  { id:'plica_soprailiaca',label:'Soprailiaca',  unit:'mm',step:'0.5',group:'pliche',icon:'🤏' },
+  // Esami biochimici
+  { id:'glicemia',  label:'Glicemia',       unit:'mg/dL',step:'0.1',group:'esami',  icon:'🩸' },
+  { id:'colest_tot',label:'Colesterolo TOT', unit:'mg/dL',step:'1', group:'esami',  icon:'🩸' },
+  { id:'colest_ldl',label:'LDL',            unit:'mg/dL',step:'1', group:'esami',  icon:'🩸' },
+  { id:'colest_hdl',label:'HDL',            unit:'mg/dL',step:'1', group:'esami',  icon:'🩸' },
+  { id:'trigliceridi',label:'Trigliceridi', unit:'mg/dL',step:'1', group:'esami',  icon:'🩸' },
+  { id:'insulina',  label:'Insulina',       unit:'μU/mL',step:'0.1',group:'esami', icon:'🩸' },
+  { id:'hba1c',     label:'HbA1c',          unit:'%',    step:'0.1',group:'esami', icon:'🩸' },
+  { id:'proteine_tot',label:'Proteine TOT', unit:'g/dL', step:'0.1',group:'esami', icon:'🩸' },
+  { id:'albumina',  label:'Albumina',       unit:'g/dL', step:'0.1',group:'esami', icon:'🩸' },
+  { id:'vit_d',     label:'Vitamina D',     unit:'ng/mL',step:'0.1',group:'esami', icon:'🩸' },
+  { id:'ferro',     label:'Ferro',          unit:'μg/dL',step:'1', group:'esami',  icon:'🩸' },
+  { id:'tsh',       label:'TSH',            unit:'mUI/L',step:'0.01',group:'esami',icon:'🩸' },
+  // Note cliniche
+  { id:'pressione', label:'Pressione',      unit:'mmHg', step:'',  group:'clinica', icon:'💓' },
+  { id:'note_cliniche',label:'Note cliniche',unit:'',   step:'',   group:'clinica', icon:'📝', textarea:true },
+  { id:'obiettivo_attuale',label:'Obiettivo aggiornato',unit:'',step:'',group:'clinica',icon:'🎯',textarea:true },
+];
+
+var MON_GROUPS = {
+  base:    { label:'Biometria di base',       icon:'⚖️' },
+  comp:    { label:'Composizione corporea',   icon:'🔬' },
+  circ:    { label:'Circonferenze',           icon:'📐' },
+  pliche:  { label:'Plicometria',             icon:'🤏' },
+  esami:   { label:'Esami biochimici',        icon:'🩸' },
+  clinica: { label:'Note cliniche',           icon:'📝' },
+};
+
+// Calcola valori derivati automaticamente
+function computeMonFields(data) {
+  var d = Object.assign({}, data);
+  var peso = parseFloat(d.peso)||0;
+  var alt  = parseFloat(d.altezza)||0;
+  var fm   = parseFloat(d.fm_perc)||0;
+  var mm   = parseFloat(d.mm_kg)||0;
+  var vita = parseFloat(d.vita)||0;
+  var fianchi = parseFloat(d.fianchi)||0;
+  var acqua = parseFloat(d.acqua_perc)||0;
+
+  if(peso>0 && alt>0)  d.bmi    = r(peso / Math.pow(alt/100, 2), 1);
+  if(peso>0 && fm>0)   d.fm_kg  = r(peso * fm/100, 1);
+  if(fm>0)             d.ffm_perc = r(100 - fm, 1);
+  if(peso>0 && fm>0)   d.ffm_kg = r(peso * (100-fm)/100, 1);
+  if(peso>0 && mm>0)   d.mm_perc = r(mm/peso*100, 1);
+  if(peso>0 && acqua>0) d.acqua_kg = r(peso * acqua/100, 1);
+  if(vita>0 && fianchi>0) d.whr = r(vita/fianchi, 2);
+  return d;
+}
+
+// ── LOAD / SAVE misurazioni da Firestore ──────────────────────────────────────
+async function loadMisurazioni(patId) {
+  try {
+    var snap = await db.collection('misurazioni').where('patId','==',patId).orderBy('data','desc').get();
+    return snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+  } catch(e) {
+    // Se orderBy fallisce per indice mancante, prova senza
+    try {
+      var snap2 = await db.collection('misurazioni').where('patId','==',patId).get();
+      var docs = snap2.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      docs.sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+      return docs;
+    } catch(e2){ console.error('loadMisurazioni:', e2); return []; }
+  }
+}
+
+async function saveMisurazione(patId, nutriId, data) {
+  var docId = data.id || ('m-'+uid());
+  var toSave = Object.assign({}, data, { patId:patId, nutriId:nutriId, updatedAt:new Date().toISOString() });
+  delete toSave.id;
+  await db.collection('misurazioni').doc(docId).set(toSave, {merge:true});
+  return docId;
+}
+
+async function deleteMisurazione(docId) {
+  await db.collection('misurazioni').doc(docId).delete();
+}
+
+// ── RENDER MONITORAGGIO ───────────────────────────────────────────────────────
+async function renderMonitoraggio() {
+  var pat = getPatientById(S.patientId);
+  if(!pat){ setHtml('tab-monitoraggio','<div class="empty-state"><div class="empty-state-title">Nessun paziente selezionato</div></div>'); return; }
+
+  setHtml('tab-monitoraggio','<div style="text-align:center;padding:30px;color:var(--text-sec)">⏳ Caricamento misurazioni...</div>');
+  var misurazioni = await loadMisurazioni(pat.id);
+
+  var html = '';
+
+  // ── PULSANTE NUOVA MISURAZIONE ──
+  html += '<button class="btn-full btn-prim purple" onclick="openNuovaMisurazione()" style="margin-bottom:12px">＋ Nuova misurazione</button>';
+
+  // ── STATISTICHE & CONFRONTO ──
+  if(misurazioni.length >= 2) {
+    html += buildMonStats(misurazioni, pat);
+  }
+
+  // ── GRAFICO TREND PESO ──
+  if(misurazioni.length >= 2) {
+    html += buildMonChart(misurazioni);
+  }
+
+  // ── STORICO ──
+  html += '<div class="sec-title">Storico misurazioni ('+misurazioni.length+')</div>';
+
+  if(!misurazioni.length) {
+    html += '<div class="card"><div style="text-align:center;color:var(--text-sec);padding:20px">'
+      +'<div style="font-size:32px;margin-bottom:8px">📏</div>'
+      +'<div style="font-weight:700">Nessuna misurazione ancora</div>'
+      +'<div style="font-size:13px;margin-top:4px">Aggiungi la prima misurazione per iniziare il monitoraggio</div>'
+      +'</div></div>';
+  } else {
+    misurazioni.forEach(function(m, idx) {
+      var prev = misurazioni[idx+1];
+      html += buildMisurazioneCard(m, prev, pat.obiettivi);
+    });
+  }
+
+  setHtml('tab-monitoraggio', html);
+}
+
+// ── CARD SINGOLA MISURAZIONE ──────────────────────────────────────────────────
+function buildMisurazioneCard(m, prev, obiettivi) {
+  var computed = computeMonFields(m);
+  var dateStr = m.data ? new Date(m.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+  var html = '<div class="card" style="margin-bottom:10px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div><div style="font-size:14px;font-weight:800;color:var(--text)">📅 '+dateStr+'</div>'
+    +(m.tipo_visita?'<div style="font-size:12px;color:var(--text-sec)">'+m.tipo_visita+'</div>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<button class="btn-sm btn-sm-blue" onclick="openEditMisurazione(\''+m.id+'\')">✏️</button>'
+    +'<button class="btn-sm btn-sm-red" onclick="confermaCancellaMisurazione(\''+m.id+'\')">🗑️</button>'
+    +'</div></div>';
+
+  // KPI principali
+  var kpis = [
+    {k:'peso',label:'Peso',unit:'kg'},
+    {k:'bmi',label:'BMI',unit:''},
+    {k:'fm_perc',label:'%FM',unit:'%'},
+    {k:'ffm_kg',label:'FFM',unit:'kg'},
+    {k:'mm_kg',label:'Musc.',unit:'kg'},
+    {k:'acqua_perc',label:'%H₂O',unit:'%'},
+  ];
+
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
+  kpis.forEach(function(kpi) {
+    var val = computed[kpi.k];
+    if(val===undefined||val===''||val===null) return;
+    var delta = '';
+    if(prev) {
+      var prevComp = computeMonFields(prev);
+      var prevVal = prevComp[kpi.k];
+      if(prevVal!==undefined && prevVal!=='' && prevVal!==null) {
+        var diff = r(parseFloat(val) - parseFloat(prevVal), 1);
+        var color = diff < 0 ? '#1D9E75' : (diff > 0 ? '#E24B4A' : '#6b7280');
+        // Per FM% diminuire è buono, per FFM aumentare è buono
+        if(kpi.k==='ffm_kg'||kpi.k==='mm_kg'||kpi.k==='acqua_perc') color = diff > 0 ? '#1D9E75' : (diff < 0 ? '#E24B4A' : '#6b7280');
+        if(diff!==0) delta = '<div style="font-size:10px;color:'+color+';font-weight:700">'+(diff>0?'+':'')+diff+(kpi.unit?kpi.unit:'')+'</div>';
+      }
+    }
+    html += '<div style="background:var(--bg-sec);border-radius:var(--rs);padding:8px;text-align:center">'
+      +'<div style="font-size:17px;font-weight:800;color:var(--text)">'+val+(kpi.unit&&kpi.k!=='bmi'?'':'')+'</div>'
+      +'<div style="font-size:10px;color:var(--text-sec)">'+kpi.label+(kpi.unit?' ('+kpi.unit+')':'')+' </div>'
+      +delta
+      +'</div>';
+  });
+  html += '</div>';
+
+  // Circonferenze se presenti
+  var circs = ['vita','fianchi','torace','braccio_dx','coscia_dx'];
+  var hasCirc = circs.some(function(c){ return m[c]; });
+  if(hasCirc) {
+    html += '<div style="font-size:11px;font-weight:700;color:var(--text-sec);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Circonferenze</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
+    circs.forEach(function(c) {
+      if(!m[c]) return;
+      var cf = MON_FIELDS.find(function(f){ return f.id===c; });
+      html += '<span style="font-size:12px;background:var(--blue-l);color:var(--blue-d);padding:3px 8px;border-radius:20px;font-weight:600">'
+        +(cf?cf.label:c)+': '+m[c]+' cm</span>';
+    });
+    html += '</div>';
+  }
+
+  // Note cliniche
+  if(m.note_cliniche) {
+    html += '<div class="note-box"><div class="note-text">📝 '+m.note_cliniche+'</div></div>';
+  }
+  if(m.obiettivo_attuale) {
+    html += '<div style="background:var(--green-l);border-left:3px solid var(--green);padding:7px 10px;border-radius:0 var(--rs) var(--rs) 0;font-size:12px;color:var(--green-d)">🎯 '+m.obiettivo_attuale+'</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// ── STATISTICHE ───────────────────────────────────────────────────────────────
+function buildMonStats(misurazioni, pat) {
+  var ultima = computeMonFields(misurazioni[0]);
+  var prima  = computeMonFields(misurazioni[misurazioni.length-1]);
+
+  // Confronto con misurazione del mese scorso
+  var now = new Date();
+  var unMeseFa = new Date(now.getFullYear(), now.getMonth()-1, now.getDate());
+  var mesePrev = null;
+  for(var i=1; i<misurazioni.length; i++){
+    if(misurazioni[i].data && new Date(misurazioni[i].data) <= unMeseFa) {
+      mesePrev = computeMonFields(misurazioni[i]); break;
+    }
+  }
+
+  var html = '<div class="sec-title">📊 Riepilogo & confronto</div>';
+
+  // Card variazione totale
+  html += '<div class="card" style="margin-bottom:10px">';
+  html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Variazione totale ('+misurazioni.length+' misurazioni)</div>';
+
+  var metrics = [
+    {k:'peso',label:'Peso',unit:'kg',lessIsBetter:true},
+    {k:'fm_perc',label:'% Massa Grassa',unit:'%',lessIsBetter:true},
+    {k:'ffm_kg',label:'Massa Magra',unit:'kg',lessIsBetter:false},
+    {k:'mm_kg',label:'Massa Muscolare',unit:'kg',lessIsBetter:false},
+    {k:'vita',label:'Vita',unit:'cm',lessIsBetter:true},
+    {k:'acqua_perc',label:'% Acqua',unit:'%',lessIsBetter:false},
+  ];
+
+  html += '<div style="display:flex;flex-direction:column;gap:6px">';
+  metrics.forEach(function(m2) {
+    var v1 = parseFloat(prima[m2.k]); var v2 = parseFloat(ultima[m2.k]);
+    if(isNaN(v1)||isNaN(v2)||v1===v2) return;
+    var diff = r(v2-v1, 1);
+    var isGood = m2.lessIsBetter ? diff<0 : diff>0;
+    var color = diff===0 ? '#6b7280' : (isGood ? '#1D9E75' : '#E24B4A');
+    var arrow = diff<0 ? '↓' : (diff>0 ? '↑' : '→');
+    html += '<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:12px;color:var(--text-sec);flex:1">'+m2.label+'</span>'
+      +'<span style="font-size:13px;font-weight:600;color:var(--text)">'+v1+' → '+v2+' '+m2.unit+'</span>'
+      +'<span style="font-size:13px;font-weight:800;color:'+color+'">'+arrow+' '+(diff>0?'+':'')+diff+' '+m2.unit+'</span>'
+      +'</div>';
+  });
+  html += '</div></div>';
+
+  // Confronto mese precedente
+  if(mesePrev) {
+    html += '<div class="card" style="margin-bottom:10px">';
+    html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Variazione ultimo mese</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:6px">';
+    metrics.forEach(function(m2) {
+      var v1 = parseFloat(mesePrev[m2.k]); var v2 = parseFloat(ultima[m2.k]);
+      if(isNaN(v1)||isNaN(v2)) return;
+      var diff = r(v2-v1, 1);
+      var isGood = m2.lessIsBetter ? diff<0 : diff>0;
+      var color = diff===0 ? '#6b7280' : (isGood ? '#1D9E75' : '#E24B4A');
+      var arrow = diff<0 ? '↓' : (diff>0 ? '↑' : '→');
+      html += '<div style="display:flex;align-items:center;gap:8px">'
+        +'<span style="font-size:12px;color:var(--text-sec);flex:1">'+m2.label+'</span>'
+        +'<span style="font-size:13px;font-weight:600;color:var(--text)">'+v1+' → '+v2+' '+m2.unit+'</span>'
+        +'<span style="font-size:13px;font-weight:800;color:'+color+'">'+arrow+' '+(diff>0?'+':'')+diff+' '+m2.unit+'</span>'
+        +'</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Statistica descrittiva sul peso
+  var pesi = misurazioni.map(function(m){ return parseFloat(m.peso); }).filter(function(v){ return !isNaN(v); });
+  if(pesi.length>=3) {
+    var pMin=Math.min.apply(null,pesi), pMax=Math.max.apply(null,pesi);
+    var pMean=r(pesi.reduce(function(s,v){return s+v;},0)/pesi.length, 1);
+    var pVar=pesi.reduce(function(s,v){return s+Math.pow(v-pMean,2);},0)/pesi.length;
+    var pSD=r(Math.sqrt(pVar), 1);
+    html += '<div class="card" style="margin-bottom:10px">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Statistica peso ('+pesi.length+' misurazioni)</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
+      +'<div style="text-align:center;background:var(--bg-sec);border-radius:var(--rs);padding:8px"><div style="font-size:16px;font-weight:800">'+pMin+'</div><div style="font-size:10px;color:var(--text-sec)">Min kg</div></div>'
+      +'<div style="text-align:center;background:var(--bg-sec);border-radius:var(--rs);padding:8px"><div style="font-size:16px;font-weight:800">'+pMax+'</div><div style="font-size:10px;color:var(--text-sec)">Max kg</div></div>'
+      +'<div style="text-align:center;background:var(--bg-sec);border-radius:var(--rs);padding:8px"><div style="font-size:16px;font-weight:800">'+pMean+'</div><div style="font-size:10px;color:var(--text-sec)">Media kg</div></div>'
+      +'<div style="text-align:center;background:var(--bg-sec);border-radius:var(--rs);padding:8px"><div style="font-size:16px;font-weight:800">'+pSD+'</div><div style="font-size:10px;color:var(--text-sec)">Dev.Std kg</div></div>'
+      +'</div></div>';
+  }
+
+  return html;
+}
+
+// ── GRAFICO TREND ─────────────────────────────────────────────────────────────
+function buildMonChart(misurazioni) {
+  var pesi = misurazioni.slice().reverse().filter(function(m){ return m.peso; });
+  if(pesi.length < 2) return '';
+
+  var vals = pesi.map(function(m){ return parseFloat(m.peso); });
+  var minV = Math.min.apply(null,vals) - 1;
+  var maxV = Math.max.apply(null,vals) + 1;
+  var range = maxV - minV || 1;
+  var W = 340, H = 100, pad = 28;
+  var pts = vals.map(function(v,i){
+    return { x: pad + i*(W-pad*2)/(vals.length-1), y: H - pad - (v-minV)/range*(H-pad*2) };
+  });
+
+  var path = pts.map(function(p,i){ return (i===0?'M':'L')+r(p.x)+','+r(p.y); }).join(' ');
+  var areaPath = 'M'+r(pts[0].x)+','+H+' '+pts.map(function(p){ return 'L'+r(p.x)+','+r(p.y); }).join(' ')+' L'+r(pts[pts.length-1].x)+','+H+' Z';
+
+  var labels = pesi.map(function(m){ return m.data ? new Date(m.data).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}) : ''; });
+
+  var svg = '<svg viewBox="0 0 '+W+' '+(H+16)+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">'
+    // Grid lines
+    +'<line x1="'+pad+'" y1="'+pad+'" x2="'+pad+'" y2="'+(H-pad)+'" stroke="#e0e0e0" stroke-width="1"/>'
+    +'<line x1="'+pad+'" y1="'+(H-pad)+'" x2="'+(W-pad)+'" y2="'+(H-pad)+'" stroke="#e0e0e0" stroke-width="1"/>'
+    // Area
+    +'<path d="'+areaPath+'" fill="#378ADD" fill-opacity="0.12"/>'
+    // Line
+    +'<path d="'+path+'" fill="none" stroke="#378ADD" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    // Points
+    +pts.map(function(p,i){
+      return '<circle cx="'+r(p.x)+'" cy="'+r(p.y)+'" r="3.5" fill="white" stroke="#378ADD" stroke-width="2"/>'
+        +'<text x="'+r(p.x)+'" y="'+(r(p.y)-7)+'" text-anchor="middle" font-size="9" fill="#378ADD" font-weight="700">'+vals[i]+'</text>';
+    }).join('')
+    // X labels
+    +labels.filter(function(_,i){ return i%Math.ceil(labels.length/5)===0||i===labels.length-1; }).map(function(lbl,_,arr){
+      var origIdx = labels.indexOf(lbl);
+      return '<text x="'+r(pts[origIdx].x)+'" y="'+(H+13)+'" text-anchor="middle" font-size="8.5" fill="#9ca3af">'+lbl+'</text>';
+    }).join('')
+    // Y labels
+    +'<text x="'+(pad-3)+'" y="'+(pad+3)+'" text-anchor="end" font-size="8.5" fill="#9ca3af">'+r(maxV,0)+'</text>'
+    +'<text x="'+(pad-3)+'" y="'+(H-pad+3)+'" text-anchor="end" font-size="8.5" fill="#9ca3af">'+r(minV,0)+'</text>'
+    +'</svg>';
+
+  return '<div class="sec-title">📈 Andamento peso</div>'
+    +'<div class="card" style="margin-bottom:10px;padding:12px 8px 6px">'+svg+'</div>';
+}
+
+// ── MODAL NUOVA / MODIFICA MISURAZIONE ───────────────────────────────────────
+var _monMisurazioni = [];
+
+async function openNuovaMisurazione(){
+  MON.editingId = null;
+  _monMisurazioni = await loadMisurazioni(S.patientId);
+  showMonModal({});
+}
+
+async function openEditMisurazione(docId){
+  MON.editingId = docId;
+  _monMisurazioni = await loadMisurazioni(S.patientId);
+  var existing = _monMisurazioni.find(function(m){ return m.id===docId; })||{};
+  showMonModal(existing);
+}
+
+function showMonModal(data){
+  var content = el('modalMonContent');
+  content.innerHTML = '';
+
+  var handle = document.createElement('div'); handle.className='modal-handle'; content.appendChild(handle);
+  var title = document.createElement('div'); title.className='modal-title';
+  title.textContent = MON.editingId ? 'Modifica misurazione' : 'Nuova misurazione';
+  content.appendChild(title);
+
+  // Data e tipo visita
+  var today = new Date().toISOString().split('T')[0];
+  var dateRow = document.createElement('div'); dateRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px';
+
+  var lDate=document.createElement('div');
+  lDate.innerHTML='<label class="lbl">Data visita</label><input type="date" class="inp" id="monData" value="'+(data.data||today)+'" style="margin-bottom:0">';
+  var lTipo=document.createElement('div');
+  lTipo.innerHTML='<label class="lbl">Tipo visita</label><select class="inp" id="monTipo" style="margin-bottom:0">'
+    +['Prima visita','Controllo mensile','Controllo bimestrale','Controllo trimestrale','Visita urgente','Altro'].map(function(t){
+      return '<option value="'+t+'"'+(data.tipo_visita===t?' selected':'')+'>'+t+'</option>';
+    }).join('')+'</select>';
+  dateRow.appendChild(lDate); dateRow.appendChild(lTipo);
+  content.appendChild(dateRow);
+
+  // Gruppi di campi
+  Object.keys(MON_GROUPS).forEach(function(gKey){
+    var group = MON_GROUPS[gKey];
+    var fields = MON_FIELDS.filter(function(f){ return f.group===gKey && !f.computed; });
+    if(!fields.length) return;
+
+    var secDiv = document.createElement('div');
+    secDiv.innerHTML = '<div class="sec-title" style="margin-top:10px">'+group.icon+' '+group.label+'</div>';
+    content.appendChild(secDiv);
+
+    var grid = document.createElement('div');
+    grid.style.cssText = gKey==='clinica' ? '' : 'display:grid;grid-template-columns:1fr 1fr;gap:8px';
+
+    fields.forEach(function(f){
+      var wrapper = document.createElement('div');
+      if(f.textarea){
+        wrapper.style.gridColumn = '1/-1';
+        wrapper.innerHTML = '<label class="lbl">'+f.icon+' '+f.label+'</label>'
+          +'<textarea class="textarea-inp" id="mon_'+f.id+'" style="min-height:60px;margin-bottom:4px" placeholder="'+f.label+'">'+(data[f.id]||'')+'</textarea>';
+      } else {
+        wrapper.innerHTML = '<label class="lbl">'+f.icon+' '+f.label+(f.unit?' ('+f.unit+')':'')+'</label>'
+          +'<input type="number" class="inp" id="mon_'+f.id+'" value="'+(data[f.id]||'')+'" step="'+f.step+'" placeholder="—" style="margin-bottom:0">';
+      }
+      grid.appendChild(wrapper);
+    });
+    content.appendChild(grid);
+  });
+
+  // Pulsanti
+  var btnDiv = document.createElement('div'); btnDiv.style.marginTop='16px';
+  var btnSave = document.createElement('button'); btnSave.className='btn-full btn-prim'; btnSave.textContent='💾 Salva misurazione';
+  btnSave.onclick = saveMisurazioneFromModal;
+  var btnCancel = document.createElement('button'); btnCancel.className='btn-full btn-sec'; btnCancel.textContent='Annulla';
+  btnCancel.onclick = function(){ closeModal('modalMon'); };
+  btnDiv.appendChild(btnSave); btnDiv.appendChild(btnCancel);
+  content.appendChild(btnDiv);
+
+  openModal('modalMon');
+}
+
+async function saveMisurazioneFromModal(){
+  var data = { data: el('monData').value, tipo_visita: el('monTipo').value };
+  MON_FIELDS.filter(function(f){ return !f.computed; }).forEach(function(f){
+    var inp = el('mon_'+f.id);
+    if(inp && inp.value!=='') data[f.id] = f.textarea ? inp.value : parseFloat(inp.value)||inp.value;
+  });
+  if(!data.data){ showToast('⚠️ Inserisci la data'); return; }
+
+  if(MON.editingId) data.id = MON.editingId;
+  try {
+    await saveMisurazione(S.patientId, S.nutriId, data);
+    closeModal('modalMon');
+    showToast('✅ Misurazione salvata!');
+    renderMonitoraggio();
+  } catch(e){ showToast('❌ Errore: '+e.message, 4000); }
+}
+
+async function confermaCancellaMisurazione(docId){
+  if(!confirm('Eliminare questa misurazione?')) return;
+  try {
+    await deleteMisurazione(docId);
+    showToast('🗑️ Eliminata');
+    renderMonitoraggio();
+  } catch(e){ showToast('❌ Errore: '+e.message); }
+}
+
