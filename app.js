@@ -1578,6 +1578,88 @@ async function creaAccountTest(){
   } else {
     _patients = snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
   }
+
+  // ── MISURAZIONI TEST — 6 mesi di storico ──
+  // Elimina misurazioni test esistenti e ricrea
+  var mSnap = await db.collection('misurazioni').where('patId','==','test-paz-001').get();
+  await Promise.all(mSnap.docs.map(function(d){return d.ref.delete();}));
+
+  var misurazioniTest = [
+    // 6 mesi fa — Prima visita
+    { id:'test-m-01', data:'2024-10-14', tipo_visita:'Prima visita',
+      peso:88.5, altezza:178, eta:35,
+      fm_perc:28.4, mm_kg:52.1, acqua_perc:51.2, osso_kg:3.8, viscerale:14, metabolismo:1820,
+      vita:98, fianchi:105, torace:102, braccio_dx:34, braccio_sx:33.5, coscia_dx:58, coscia_sx:57.5,
+      plica_tricipite:22, plica_bicipite:14, plica_addome:28, plica_coscia:32,
+      glicemia:98, colest_tot:195, colest_ldl:128, colest_hdl:42, trigliceridi:145, vit_d:22, tsh:1.8,
+      pressione:'130/85',
+      note_cliniche:'Prima visita. Paziente motivato, lavoro sedentario. Leggera ipertensione borderline. Sovrappeso con accumulo addominale.',
+      obiettivo_attuale:'Perdere 8-10 kg in 6 mesi. Ridurre grasso viscerale. Migliorare parametri metabolici.'
+    },
+    // 5 mesi fa
+    { id:'test-m-02', data:'2024-11-11', tipo_visita:'Controllo mensile',
+      peso:86.2, altezza:178, eta:35,
+      fm_perc:27.1, mm_kg:52.4, acqua_perc:52.0, osso_kg:3.8, viscerale:13, metabolismo:1835,
+      vita:95.5, fianchi:103, torace:100.5, braccio_dx:33.5, braccio_sx:33, coscia_dx:57, coscia_sx:56.5,
+      plica_tricipite:20, plica_bicipite:13, plica_addome:25, plica_coscia:30,
+      glicemia:95, colest_tot:188, colest_ldl:122, colest_hdl:44, trigliceridi:132, vit_d:24, tsh:1.7,
+      pressione:'128/82',
+      note_cliniche:'Buona compliance alla dieta. Iniziato allenamento 3x/settimana. Lieve miglioramento pressione.',
+      obiettivo_attuale:'Continuare il percorso. Aumentare proteine post-allenamento.'
+    },
+    // 4 mesi fa
+    { id:'test-m-03', data:'2024-12-09', tipo_visita:'Controllo mensile',
+      peso:84.8, altezza:178, eta:35,
+      fm_perc:26.2, mm_kg:52.8, acqua_perc:52.5, osso_kg:3.8, viscerale:12, metabolismo:1848,
+      vita:93, fianchi:101.5, torace:99, braccio_dx:33.5, braccio_sx:33, coscia_dx:56, coscia_sx:55.5,
+      plica_tricipite:19, plica_bicipite:12.5, plica_addome:23, plica_coscia:29,
+      glicemia:91, colest_tot:182, colest_ldl:115, colest_hdl:46, trigliceridi:118, vit_d:26, tsh:1.8,
+      pressione:'125/80',
+      note_cliniche:'Eccellenti progressi. Pressione normalizzata. Aumento massa muscolare visibile. Paziente molto motivato.',
+      obiettivo_attuale:'Mantenere il ritmo. Attenzione alle feste di Natale — piano libero moderato.'
+    },
+    // 3 mesi fa
+    { id:'test-m-04', data:'2025-01-13', tipo_visita:'Controllo mensile',
+      peso:84.1, altezza:178, eta:35,
+      fm_perc:25.8, mm_kg:53.0, acqua_perc:52.8, osso_kg:3.9, viscerale:11, metabolismo:1855,
+      vita:91.5, fianchi:100, torace:98, braccio_dx:34, braccio_sx:33.5, coscia_dx:55.5, coscia_sx:55,
+      plica_tricipite:18, plica_bicipite:12, plica_addome:21, plica_coscia:27.5,
+      glicemia:89, colest_tot:178, colest_ldl:110, colest_hdl:48, trigliceridi:108, vit_d:28, tsh:1.7,
+      pressione:'122/78',
+      note_cliniche:'Leggero plateau dopo le feste ma risultati stabili. Ottimo profilo lipidico in miglioramento.',
+      obiettivo_attuale:'Superare il plateau con variazione calorica ciclica. Aumentare cardio moderato.'
+    },
+    // 2 mesi fa
+    { id:'test-m-05', data:'2025-02-10', tipo_visita:'Controllo mensile',
+      peso:82.3, altezza:178, eta:35,
+      fm_perc:24.6, mm_kg:53.5, acqua_perc:53.4, osso_kg:3.9, viscerale:10, metabolismo:1870,
+      vita:89, fianchi:98.5, torace:97, braccio_dx:34.5, braccio_sx:34, coscia_dx:54.5, coscia_sx:54,
+      plica_tricipite:16.5, plica_bicipite:11, plica_addome:19, plica_coscia:26,
+      glicemia:86, colest_tot:172, colest_ldl:105, colest_hdl:50, trigliceridi:98, vit_d:30, tsh:1.6,
+      pressione:'120/76',
+      note_cliniche:'Ottimo superamento del plateau. Composizione corporea in netto miglioramento. Paziente soddisfatto.',
+      obiettivo_attuale:'Ultimi 3-4 kg. Mantenere massa muscolare acquisita.'
+    },
+    // 1 mese fa — ultimo controllo
+    { id:'test-m-06', data:'2025-03-10', tipo_visita:'Controllo mensile',
+      peso:80.8, altezza:178, eta:35,
+      fm_perc:23.1, mm_kg:54.2, acqua_perc:54.1, osso_kg:3.9, viscerale:9, metabolismo:1888,
+      vita:86.5, fianchi:96, torace:95.5, braccio_dx:35, braccio_sx:34.5, coscia_dx:53.5, coscia_sx:53,
+      plica_tricipite:15, plica_bicipite:10, plica_addome:17, plica_coscia:24.5,
+      glicemia:84, colest_tot:168, colest_hdl:53, colest_ldl:99, trigliceridi:88, vit_d:32, tsh:1.7,
+      pressione:'118/76',
+      note_cliniche:'Risultati eccellenti in 5 mesi. Peso -7.7kg, FM% -5.3%, massa muscolare +2.1kg. Pressione normalizzata, profilo lipidico ottimale.',
+      obiettivo_attuale:'Fase di mantenimento. Obiettivo peso 78-79kg. Continuare attività fisica regolare.'
+    }
+  ];
+
+  await Promise.all(misurazioniTest.map(function(m){
+    var docId = m.id;
+    var toSave = Object.assign({}, m, { patId:'test-paz-001', nutriId:'test-nutri-001', updatedAt:new Date().toISOString() });
+    delete toSave.id;
+    return db.collection('misurazioni').doc(docId).set(toSave);
+  }));
+
   showToast('✅ Account test pronti! Accedi ora.',4000);
   setTimeout(function(){
     alert('✅ Account test creati!\n\n👨‍⚕️ NUTRIZIONISTA\nUsername: dott.bianchi\nPassword: test1234\n\n👤 PAZIENTE\nCodice accesso: GIUSEPPE-2025\n\nAccedi ora con le credenziali sopra.');
