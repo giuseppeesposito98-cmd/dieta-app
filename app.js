@@ -1,4 +1,4 @@
-// BUILD: 20260701152349
+// BUILD: 20260701155434
 // ── FOOD INDEX ───────────────────────────────────────────────────────────────
 var FOOD_INDEX = FOOD_DB.map(function(f){
   return {name:f[0],kcal:f[1],p:f[2],c:f[3],fat:f[4],fiber:f[5]||0,cat:f[6],
@@ -414,7 +414,10 @@ function renderMeals(){
           +'<span class="food-name">'+food.n+'</span>'
           +'<span class="food-qty">'+(food.q||'—')+'</span>'
           +'<span class="food-kcal-sm">'+r(food.kcal||0)+' kcal</span>'
-          +(isNutri?'<button class="food-del" onclick="deleteFood('+S.selDay+',\''+pm.id+'\','+fi2+')">✕</button>':'')
+          +(isNutri
+            ?'<button class="food-edit-btn" onclick="editFood('+S.selDay+',\''+pm.id+'\','+fi2+')" title="Modifica">✏️</button>'
+             +'<button class="food-del" onclick="deleteFood('+S.selDay+',\''+pm.id+'\','+fi2+')" title="Elimina">✕</button>'
+            :'')
           +'</div>';
       });
       html+='</div><div class="macros-row">'
@@ -429,8 +432,12 @@ function renderMeals(){
     }
     if(note[pm.id])html+='<div class="note-box"><div class="note-text">📝 '+note[pm.id]+'</div></div>';
     if(isNutri){
+      var hasCibi=(g[pm.id]||[]).length>0;
+      var cpClip=null;try{cpClip=JSON.parse(sessionStorage.getItem('cp_'+S.patientId)||'null');}catch(ex){}
       html+='<div class="add-row">'
-        +'<button class="btn-add" onclick="openAddFood('+S.selDay+',\''+pm.id+'\',\''+pm.nome+'\')">＋ Aggiungi alimento</button>'
+        +'<button class="btn-add" onclick="openAddFood('+S.selDay+',\''+pm.id+'\',\''+pm.nome+'\')">＋ Aggiungi</button>'
+        +(hasCibi?'<button class="btn-cp" onclick="copyPasto('+S.selDay+',\''+pm.id+'\')" title="Copia pasto">📋</button>':'')
+        +(cpClip?'<button class="btn-cp" style="background:var(--green-l);color:var(--green-d)" onclick="pastePasto('+S.selDay+',\''+pm.id+'\')" title="Incolla '+(cpClip.cibi||[]).length+' alimenti">📌</button>':'')
         +'<button class="btn-note" onclick="openNote('+S.selDay+',\''+pm.id+'\',\''+pm.nome+'\')">📝</button>'
         +'</div>';
     }else{
@@ -1164,8 +1171,6 @@ function renderConfigAB(){
   ensureDieta(pat);
   var cfg=pat.configAB||{enabled:false,startDate:'',durata:8};
   var html='';
-
-  // ── SEZIONE CONFIGURAZIONE ──
   html+='<div class="card" style="margin-bottom:8px;padding:12px">'
     +'<div class="card-title" style="margin-bottom:8px">⚙️ Impostazioni alternanza</div>'
     +'<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px">'
@@ -1283,7 +1288,7 @@ function renderConfigAB(){
       +'</div></div>';
   }
 
-  html+='<div style="height:20px"></div>';
+  html+='<div style="height:80px"></div>';
   setHtml('tab-configAB',html);
 }
 
