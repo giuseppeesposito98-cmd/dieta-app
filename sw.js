@@ -1,6 +1,6 @@
-// BUILD: 20260701155434
-// v31
-const CACHE_NAME = 'dieta-app-v31';
+// BUILD: 20260701160710
+// v32
+const CACHE_NAME = 'dieta-app-v32';
 
 // Installa immediatamente senza aspettare
 self.addEventListener('install', e => {

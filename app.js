@@ -1,4 +1,4 @@
-// BUILD: 20260701155434
+// BUILD: 20260701160710
 // ── FOOD INDEX ───────────────────────────────────────────────────────────────
 var FOOD_INDEX = FOOD_DB.map(function(f){
   return {name:f[0],kcal:f[1],p:f[2],c:f[3],fat:f[4],fiber:f[5]||0,cat:f[6],
@@ -921,24 +921,26 @@ function editFood(dayIdx, pId, foodIdx){
   if(!food){showToast('Alimento non trovato');return;}
   S.editCtx={dayIdx:dayIdx, pId:pId, editFoodIdx:foodIdx};
   S.selFood=null; S.manualOpen=true; _currentQtyMode='free';
-  el('modalFoodTitle').textContent='✏️ Modifica — '+food.n;
-  el('btnSaveFood').textContent='Salva modifiche';
-  el('searchInp').value=''; el('searchClear').style.display='none';
-  closeSugg();
-  el('selFoodBox').classList.remove('vis');
-  el('qtySection').style.display='none';
-  // Pre-fill manual form
-  el('inName').value=food.n||'';
-  el('inQtyFree').value=food.q||'';
-  el('inKcal').value=food.kcal||0;
-  el('inProt').value=food.p||0;
-  el('inCarb').value=food.c||0;
-  el('inFat').value=food.fat||food.f||0;
-  setFoodTab('manuale');
-  el('manualSec').classList.add('open');
-  el('manualToggle').textContent='▲ Chiudi inserimento manuale';
+  // Apri il modal PRIMA di manipolare gli elementi al suo interno
   openModal('modalFood');
-  setTimeout(function(){el('inName').focus();},300);
+  setTimeout(function(){
+    var t=el('modalFoodTitle'); if(t) t.textContent='✏️ Modifica — '+food.n;
+    var b=el('btnSaveFood'); if(b) b.textContent='Salva modifiche';
+    var si=el('searchInp'); if(si){si.value=''; el('searchClear').style.display='none';}
+    closeSugg();
+    var sfb=el('selFoodBox'); if(sfb) sfb.classList.remove('vis');
+    var qs=el('qtySection'); if(qs) qs.style.display='none';
+    var inName=el('inName'); if(inName) inName.value=food.n||'';
+    var inQ=el('inQtyFree'); if(inQ) inQ.value=food.q||'';
+    var inK=el('inKcal'); if(inK) inK.value=food.kcal||0;
+    var inP=el('inProt'); if(inP) inP.value=food.p||0;
+    var inC=el('inCarb'); if(inC) inC.value=food.c||0;
+    var inF=el('inFat'); if(inF) inF.value=food.fat||food.f||0;
+    setFoodTab('manuale');
+    var ms=el('manualSec'); if(ms) ms.classList.add('open');
+    var mt=el('manualToggle'); if(mt) mt.textContent='▲ Chiudi inserimento manuale';
+    var n=el('inName'); if(n) n.focus();
+  }, 50);
 }
 
 function openNote(dayIdx,pId,pNome){
