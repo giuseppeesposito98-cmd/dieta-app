@@ -440,6 +440,36 @@ function renderMeals(){
   setHtml('mealCards',html);
 }
 function toggleCheck(key){var c=getCheckins();c[key]=!c[key];saveCheckins(c);renderMeals();}
+
+function copyPasto(dayIdx, pId){
+  var pat=getPatientById(S.patientId);
+  var dieta=getDietaForWeek(pat, S.weekOffset);
+  var cibi=(dieta.giorni&&dieta.giorni[dayIdx]&&dieta.giorni[dayIdx][pId])||[];
+  var cpKey='cp_'+S.patientId;
+  sessionStorage.setItem(cpKey, JSON.stringify({pId:pId,dayIdx:dayIdx,cibi:JSON.parse(JSON.stringify(cibi))}));
+  showToast('📋 '+cibi.length+' alimenti copiati — premi 📌 per incollare');
+  renderMeals();
+}
+async function pastePasto(dayIdx, pId){
+  var cpKey='cp_'+S.patientId;
+  var clipboard=null;
+  try{clipboard=JSON.parse(sessionStorage.getItem(cpKey)||'null');}catch(e){}
+  if(!clipboard||!clipboard.cibi||!clipboard.cibi.length){showToast('⚠️ Niente da incollare');return;}
+  var pat=ensureDieta(getPatientById(S.patientId));
+  // Determine which dieta to write to
+  var tDieta=null;
+  if(S.editCtx&&S.editCtx.isAB){
+    tDieta=AB.editKey==='A'?pat.dietaA:pat.dietaB;
+  } else {
+    var dietaKey=S.activeDietKey||'A';
+    tDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
+  }
+  if(!tDieta.giorni[dayIdx]) tDieta.giorni[dayIdx]={colazione:[],spuntino_m:[],pranzo:[],merenda:[],cena:[],note:{}};
+  clipboard.cibi.forEach(function(food){tDieta.giorni[dayIdx][pId].push(Object.assign({},food));});
+  await updatePatient(pat);
+  renderMeals();renderHeader();
+  showToast('📌 '+clipboard.cibi.length+' alimenti incollati!');
+}
 function deleteFood(dayIdx,pId,fi){
   var pat=ensureDieta(getPatientById(S.patientId));
   var dietaKey=S.activeDietKey||'A';
@@ -863,24 +893,65 @@ async function deleteAllData(){
 
 // ── ADD FOOD ──────────────────────────────────────────────────────────────────
 function openAddFood(dayIdx,pId,pNome){
-  S.editCtx={dayIdx:dayIdx,pId:pId};S.selFood=null;S.manualOpen=false;
-  el('modalFoodTitle').textContent='➕ Aggiungi a '+pNome;
+  S.editCtx={dayIdx:dayIdx,pId:pId,editFoodIdx:undefined};
+  S.selFood=null;S.manualOpen=false;_currentQtyMode='g';
+  el('modalFoodTitle').textContent='➕ '+pNome;
   el('searchInp').value='';el('searchClear').style.display='none';
   closeSugg();
   el('selFoodBox').classList.remove('vis');
   el('qtySection').style.display='none';
-  el('manualSec').classList.remove('open');
-  el('manualToggle').textContent='✏️ Inserimento manuale (alimento non trovato)';
+  el('btnSaveFood').textContent='Aggiungi al piano';
   ['inName','inQtyFree','inKcal','inProt','inCarb','inFat'].forEach(function(id){el(id).value='';});
+  setFoodTab('db');
   openModal('modalFood');
   setTimeout(function(){el('searchInp').focus();},350);
 }
+function editFood(dayIdx, pId, foodIdx){
+  var pat=getPatientById(S.patientId);
+  var dieta=getDietaForWeek(pat, S.weekOffset);
+  var food=(dieta.giorni&&dieta.giorni[dayIdx]&&dieta.giorni[dayIdx][pId]&&dieta.giorni[dayIdx][pId][foodIdx]);
+  if(!food){showToast('Alimento non trovato');return;}
+  S.editCtx={dayIdx:dayIdx, pId:pId, editFoodIdx:foodIdx};
+  S.selFood=null; S.manualOpen=true; _currentQtyMode='free';
+  el('modalFoodTitle').textContent='✏️ Modifica — '+food.n;
+  el('btnSaveFood').textContent='Salva modifiche';
+  el('searchInp').value=''; el('searchClear').style.display='none';
+  closeSugg();
+  el('selFoodBox').classList.remove('vis');
+  el('qtySection').style.display='none';
+  // Pre-fill manual form
+  el('inName').value=food.n||'';
+  el('inQtyFree').value=food.q||'';
+  el('inKcal').value=food.kcal||0;
+  el('inProt').value=food.p||0;
+  el('inCarb').value=food.c||0;
+  el('inFat').value=food.fat||food.f||0;
+  setFoodTab('manuale');
+  el('manualSec').classList.add('open');
+  el('manualToggle').textContent='▲ Chiudi inserimento manuale';
+  openModal('modalFood');
+  setTimeout(function(){el('inName').focus();},300);
+}
+
 async function saveFood(){
   var food=null;
   if(S.selFood&&!S.manualOpen){
-    var grams=parseFloat(el('inQtyG').value)||100;
-    var ratio=grams/100;var f=S.selFood;
-    food={n:f.name,q:grams+'g',kcal:r(f.kcal*ratio),p:r(f.p*ratio,1),c:r(f.c*ratio,1),fat:r(f.fat*ratio,1),fi:r((f.fiber||0)*ratio,1)};
+    var mode=_currentQtyMode||'g';
+    var grams,qLabel;
+    if(mode==='qb'){
+      var f=S.selFood;
+      food={n:f.name,q:'q.b.',kcal:0,p:0,c:0,fat:0,fi:0};
+    } else if(mode==='pz'){
+      var nPz=parseFloat(el('inQtyPz').value)||1;
+      grams=Math.round(nPz*(S._pesoPerPezzo||1));
+      qLabel=nPz+' pz ('+grams+'g)';
+      var ratio=grams/100;var f=S.selFood;
+      food={n:f.name,q:qLabel,kcal:r(f.kcal*ratio),p:r(f.p*ratio,1),c:r(f.c*ratio,1),fat:r(f.fat*ratio,1),fi:r((f.fiber||0)*ratio,1)};
+    } else {
+      grams=parseFloat(el('inQtyG').value)||100;
+      var ratio=grams/100;var f=S.selFood;
+      food={n:f.name,q:grams+'g',kcal:r(f.kcal*ratio),p:r(f.p*ratio,1),c:r(f.c*ratio,1),fat:r(f.fat*ratio,1),fi:r((f.fiber||0)*ratio,1)};
+    }
   }else{
     var n=el('inName').value.trim();
     if(!n){showToast('⚠️ Inserisci il nome');return;}
@@ -895,10 +966,15 @@ async function saveFood(){
   } else {
     var dietaKey=S.activeDietKey||'A';
     var targetDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
-    targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
+    if(S.editCtx.editFoodIdx!==undefined){
+      targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId][S.editCtx.editFoodIdx]=food;
+      showToast('✅ '+food.n+' modificato!');
+    } else {
+      targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
+      showToast('✅ '+food.n+' aggiunto!');
+    }
     await updatePatient(pat);closeModal('modalFood');renderMeals();renderHeader();
   }
-  showToast('✅ '+food.n+' aggiunto!');
 }
 function openNote(dayIdx,pId,pNome){
   S.editCtx={dayIdx:dayIdx,pId:pId};
@@ -997,6 +1073,34 @@ function onSearchKey(e){
   else if(e.key==='Enter'&&suggIdx>=0){e.preventDefault();items[suggIdx].click();}
   else if(e.key==='Escape'){closeSugg();}
 }
+// Pesi unitari per categorie a pezzi (grammi per pezzo)
+var PEZZI_DB = {
+  // Frutta
+  'banana':120,'mela':150,'pera':150,'arancia':200,'mandarino':80,'kiwi':80,
+  'fragola':12,'ciliegia':8,'albicocca':40,'prugna':40,'fico':50,'dattero':8,
+  'mirtillo':2,'lampone':4,'mora':5,'uva':5,
+  // Frutta secca
+  'mandorla':1.2,'noce':5,'nocciola':1.5,'anacardio':1.5,'pistacchio':0.7,
+  'anacardi':1.5,'arachide':0.7,'pinolo':0.3,
+  // Uova
+  'uovo':50,'albume':18,'tuorlo':17,
+  // Biscotti e gallette
+  'galletta':9,'fetta biscottata':10,'cracker':8,'wafer':5,'biscotto':8,
+  'oro saiwa':8,'digestive':15,'wasa':11,'ryvita':10,'tarallo':10,
+  // Cioccolato
+  'gianduiotto':10,'cioccolatino':12,'lindor':12,'ferrero rocher':12,
+  'baci':12,'quadratino':5,
+  // Altro
+  'falafel':30,'gyoza':15,'olive':5,'cappero':1,'crackers':8
+};
+function getPesoPerPezzo(foodName){
+  var n = foodName.toLowerCase();
+  for(var k in PEZZI_DB){
+    if(n.includes(k)) return PEZZI_DB[k];
+  }
+  return null;
+}
+
 function selectFood(idx){
   var f=FOOD_INDEX[idx];S.selFood=f;
   el('searchInp').value=f.name;closeSugg();
@@ -1005,10 +1109,75 @@ function selectFood(idx){
   el('selFoodMacros').textContent='Per 100g: '+f.kcal+' kcal | P '+f.p+'g | C '+f.c+'g | G '+f.fat+'g'+(f.fiber?' | Fi '+f.fiber+'g':'');
   el('selFoodBox').classList.add('vis');
   el('qtySection').style.display='block';
-  var presets=['30g','50g','100g','120g','150g','200g','250g'];
-  el('qtyPresets').innerHTML=presets.map(function(p){return '<div class="qty-preset" onclick="setQtyPreset(\''+p+'\')">'+p+'</div>';}).join('');
-  el('inQtyG').value='100';
+
+  // Detect if this food can be measured by pieces
+  var pesoP = getPesoPerPezzo(f.name);
+  S._pesoPerPezzo = pesoP;
+
+  // Build qty tabs
+  var tabsHtml = '<div class="qty-tabs">'
+    +'<div class="qty-tab active" id="qtab-g" onclick="setQtyTab_g()">Grammi</div>'
+    +(pesoP?'<div class="qty-tab" id="qtab-pz" onclick="setQtyTab_pz()">Pezzi ('+pesoP+'g/pz)</div>':'')
+    +'<div class="qty-tab" id="qtab-qb" onclick="setQtyTab_qb()">QB</div>'
+    +'</div>';
+
+  var grammiHtml = '<div id="qpanel-g">'
+    +'<div class="qty-presets-wrap">'
+    +['30g','50g','100g','120g','150g','200g','250g'].map(function(p){
+      return '<div class="qty-preset" onclick="setQtyPreset(\''+p+'\')">'+p+'</div>';
+    }).join('')
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'
+    +'<input type="number" class="inp" id="inQtyG" value="100" min="1" max="9999" oninput="onQtyChange()" style="flex:1;margin:0">'
+    +'<span style="font-size:13px;color:var(--text-sec)">grammi</span>'
+    +'</div></div>';
+
+  var pezziHtml = pesoP ? '<div id="qpanel-pz" style="display:none">'
+    +'<div style="font-size:12px;color:var(--text-sec);margin-bottom:8px">1 pezzo = '+pesoP+'g</div>'
+    +'<div class="qty-presets-wrap">'
+    +[1,2,3,4,5,6,8,10].map(function(n){
+      return '<div class="qty-preset" onclick="setQtyPezzi('+n+')">'+n+' pz</div>';
+    }).join('')
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'
+    +'<input type="number" class="inp" id="inQtyPz" value="1" min="1" max="99" oninput="onPzChange()" style="flex:1;margin:0">'
+    +'<span style="font-size:13px;color:var(--text-sec)">pezzi = </span>'
+    +'<span id="pzGrammi" style="font-size:13px;font-weight:700;color:var(--blue)">'+pesoP+'g</span>'
+    +'</div></div>' : '';
+
+  var qbHtml = '<div id="qpanel-qb" style="display:none">'
+    +'<div style="padding:14px;background:var(--green-l);border-radius:var(--rs);text-align:center">'
+    +'<div style="font-size:22px;margin-bottom:4px">⚖️</div>'
+    +'<div style="font-size:13px;font-weight:700;color:var(--green-d)">Quanto Basta</div>'
+    +'<div style="font-size:12px;color:var(--green-d);margin-top:4px">I valori nutrizionali non verranno calcolati. Utile per spezie, condimenti, acqua.</div>'
+    +'</div></div>';
+
+  el('qtySection').innerHTML = tabsHtml + grammiHtml + pezziHtml + qbHtml;
+  _currentQtyMode = 'g';
   if(S.manualOpen)toggleManual();
+}
+
+function setQtyTab_g(){setQtyTab('g');}
+function setQtyTab_pz(){setQtyTab('pz');}
+function setQtyTab_qb(){setQtyTab('qb');}
+function setQtyTab(mode){
+  _currentQtyMode = mode;
+  ['g','pz','qb'].forEach(function(t){
+    var tab=el('qtab-'+t), panel=el('qpanel-'+t);
+    if(tab){tab.classList.toggle('active',t===mode);}
+    if(panel){panel.style.display=t===mode?'block':'none';}
+  });
+}
+function setQtyPezzi(n){
+  var inp=el('inQtyPz');if(inp)inp.value=n;
+  onPzChange();
+  document.querySelectorAll('#qpanel-pz .qty-preset').forEach(function(e){e.classList.toggle('active',e.textContent===n+' pz');});
+}
+function onPzChange(){
+  var n=parseFloat(el('inQtyPz').value)||1;
+  var g=Math.round(n*(S._pesoPerPezzo||1));
+  var lbl=el('pzGrammi');if(lbl)lbl.textContent=g+'g';
+  document.querySelectorAll('#qpanel-pz .qty-preset').forEach(function(e){e.classList.remove('active');});
 }
 function setQtyPreset(p){
   document.querySelectorAll('.qty-preset').forEach(function(e){e.classList.toggle('active',e.textContent===p);});
@@ -1039,7 +1208,7 @@ function renderConfigAB(){
   var html='';
 
   // ── SEZIONE CONFIGURAZIONE ──
-  html+='<div class="card" style="margin-bottom:10px">'
+  html+='<div class="card" style="margin-bottom:8px;padding:12px">'
     +'<div class="card-title" style="margin-bottom:8px">⚙️ Impostazioni alternanza</div>'
     +'<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px">'
     +'<input type="checkbox" id="abEnabled" '+(cfg.enabled?'checked':'')+' onchange="toggleAB()" style="width:20px;height:20px;accent-color:var(--purple)">'
@@ -1121,7 +1290,7 @@ function renderConfigAB(){
           +'<span class="food-name">'+food.n+'</span>'
           +'<span class="food-qty">'+(food.q||'—')+'</span>'
           +'<span class="food-kcal-sm">'+r(food.kcal||0)+' kcal</span>'
-          +'<button class="food-del" onclick="delABFood(\''+pm.id+'\','+fi+')">✕</button>'
+          +'<div class="food-row-actions">'+'<button class="food-edit" onclick="openEditFood('+AB.editDay+',\''+pm.id+'\','+fi+',true)" title="Modifica">✏️</button>'+'<button class="food-del" onclick="delABFood(\''+pm.id+'\','+fi+')">✕</button>'+'</div>'
           +'</div>';
       });
       html+='</div>';
@@ -1166,16 +1335,16 @@ function setABKey_B(){setABKey('B');}
 function setABDay(i){AB.editDay=i;renderConfigAB();}
 
 function openABAddFood(pId,pNome){
-  S.editCtx={dayIdx:AB.editDay,pId:pId,isAB:true};
+  S.editCtx={dayIdx:AB.editDay,pId:pId,isAB:true,editFoodIdx:undefined};
+  S.selFood=null;S.manualOpen=false;_currentQtyMode='g';
   el('modalFoodTitle').textContent='➕ Dieta '+AB.editKey+' — '+GG_E[AB.editDay]+' — '+pNome;
   el('searchInp').value='';el('searchClear').style.display='none';
   closeSugg();
   el('selFoodBox').classList.remove('vis');
   el('qtySection').style.display='none';
-  el('manualSec').classList.remove('open');
-  el('manualToggle').textContent='✏️ Inserimento manuale (alimento non trovato)';
+  el('btnSaveFood').textContent='Aggiungi al piano';
   ['inName','inQtyFree','inKcal','inProt','inCarb','inFat'].forEach(function(id){el(id).value='';});
-  S.selFood=null;S.manualOpen=false;
+  setFoodTab('db');
   openModal('modalFood');
   setTimeout(function(){el('searchInp').focus();},350);
 }
@@ -1694,6 +1863,16 @@ async function creaAccountTest(){
 
 window.creaAccountTest = creaAccountTest;
 window.openNuovaMisurazione = openNuovaMisurazione;
+window.copyPasto = copyPasto;
+window.pastePasto = pastePasto;
+window.editFood = editFood;
+window.setQtyTab = setQtyTab;
+window.setQtyTab_g = setQtyTab_g;
+window.setQtyTab_pz = setQtyTab_pz;
+window.setQtyTab_qb = setQtyTab_qb;
+window.setQtyPezzi = setQtyPezzi;
+window.onPzChange = onPzChange;
+window.stampaMisurazioni = stampaMisurazioni;
 window.openEditMisurazione = openEditMisurazione;
 window.saveMisurazioneFromModal = saveMisurazioneFromModal;
 window.confermaCancellaMisurazione = confermaCancellaMisurazione;
@@ -1850,6 +2029,252 @@ async function deleteMisurazione(docId) {
   await db.collection('misurazioni').doc(docId).delete();
 }
 
+// ── STAMPA MISURAZIONI ────────────────────────────────────────────────────────
+async function stampaMisurazioni() {
+  var pat = getPatientById(S.patientId);
+  if(!pat){ showToast('Nessun paziente selezionato'); return; }
+  showToast('⏳ Preparazione stampa...', 4000);
+  var misurazioni = await loadMisurazioni(pat.id);
+  if(!misurazioni.length){ showToast('Nessuna misurazione da stampare'); return; }
+
+  var pc = S.nutriId ? getPrintColors() : {primary:'#1a1a1a', accent:'#374151'};
+  var logo = S.nutriId ? getNutriLogo() : '';
+  var now = new Date();
+  var dateStr = now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
+  var GG = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+  // Helper
+  function fmtDate(d){ if(!d) return '—'; var dt=new Date(d); return dt.getDate()+'/'+(dt.getMonth()+1)+'/'+dt.getFullYear(); }
+  function fmtVal(v,dec){ if(v===undefined||v===null||v==='') return '—'; return dec?parseFloat(v).toFixed(dec):v; }
+  function delta(curr,prev,key,lessIsBetter){
+    var c=parseFloat(curr[key]), p=parseFloat(prev[key]);
+    if(isNaN(c)||isNaN(p)) return '';
+    var d=Math.round((c-p)*10)/10;
+    if(d===0) return '<span style="color:#888">→</span>';
+    var good=(lessIsBetter?d<0:d>0);
+    return '<span style="color:'+(good?'#1D9E75':'#E24B4A');+';font-weight:700">'+(d>0?'▲':'▼')+Math.abs(d)+'</span>';
+  }
+
+  // Compute derived fields for all
+  var computed = misurazioni.map(function(m){ return computeMonFields(m); });
+
+  // ── HTML STAMPA ──
+  var html = '';
+
+  // Pagina 1: Header + Andamento principale
+  html += '<div class="pm-page">';
+
+  // Header
+  html += '<div class="pm-header">';
+  if(logo){
+    html += '<div class="pm-logo"><img src="'+logo+'" style="max-height:48px;max-width:160px;object-fit:contain"></div>';
+  } else {
+    html += '<div class="pm-logo-txt">REPORT CLINICO</div>';
+  }
+  html += '<div class="pm-header-info">'
+    +'<div class="pm-paziente">'+pat.nome+'</div>'
+    +'<div class="pm-meta">Riepilogo misurazioni &nbsp;·&nbsp; Emesso il '+dateStr+'</div>'
+    +'<div class="pm-meta">'+misurazioni.length+' controlli &nbsp;·&nbsp; '
+    +'Periodo: '+fmtDate(misurazioni[misurazioni.length-1].data)+' → '+fmtDate(misurazioni[0].data)
+    +'</div></div></div>';
+
+  // Riepilogo variazioni totali
+  var prima = computed[computed.length-1];
+  var ultima = computed[0];
+  var METRICHE = [
+    {k:'peso',   lbl:'Peso',          unit:'kg',  lb:true},
+    {k:'bmi',    lbl:'BMI',           unit:'',    lb:true},
+    {k:'fm_perc',lbl:'% Massa Grassa',unit:'%',   lb:true},
+    {k:'ffm_kg', lbl:'Massa Magra',   unit:'kg',  lb:false},
+    {k:'mm_kg',  lbl:'Massa Musc.',   unit:'kg',  lb:false},
+    {k:'acqua_perc',lbl:'% Acqua',    unit:'%',   lb:false},
+    {k:'vita',   lbl:'Vita',          unit:'cm',  lb:true},
+    {k:'fianchi',lbl:'Fianchi',       unit:'cm',  lb:true},
+  ];
+
+  html += '<div class="pm-section-title" style="border-top:3px solid '+pc.primary+';padding-top:10px">Variazione complessiva</div>';
+  html += '<div class="pm-kpi-grid">';
+  METRICHE.forEach(function(m){
+    var v1=parseFloat(prima[m.k]), v2=parseFloat(ultima[m.k]);
+    if(isNaN(v1)||isNaN(v2)) return;
+    var diff=Math.round((v2-v1)*10)/10;
+    var good=m.lb?diff<0:diff>0;
+    var color=diff===0?'#888':(good?'#1D9E75':'#E24B4A');
+    var arrow=diff<0?'↓':diff>0?'↑':'→';
+    html += '<div class="pm-kpi">'
+      +'<div class="pm-kpi-lbl">'+m.lbl+'</div>'
+      +'<div class="pm-kpi-vals">'+v1+(m.unit?' '+m.unit:'')+'<span class="pm-kpi-arrow">→</span>'+v2+(m.unit?' '+m.unit:'')+'</div>'
+      +'<div class="pm-kpi-delta" style="color:'+color+'">'+arrow+' '+(diff>0?'+':'')+diff+(m.unit?' '+m.unit:'')+'</div>'
+      +'</div>';
+  });
+  html += '</div>';
+
+  // Grafico SVG andamento peso inline
+  var pesi = misurazioni.slice().reverse().filter(function(m){ return m.peso; });
+  if(pesi.length >= 2){
+    var vals = pesi.map(function(m){ return parseFloat(m.peso); });
+    var labels = pesi.map(function(m){ return fmtDate(m.data).slice(0,5); });
+    var minV=Math.min.apply(null,vals)-1, maxV=Math.max.apply(null,vals)+1;
+    var range=maxV-minV||1;
+    var W=540, H=100, padL=35, padB=18;
+    var W2=W-padL, H2=H-padB;
+    var pts=vals.map(function(v,i){ return {x:padL+i/(vals.length-1)*W2, y:H2-(v-minV)/range*H2}; });
+    var pathD=pts.map(function(p,i){return (i===0?'M':'L')+Math.round(p.x)+','+Math.round(p.y);}).join(' ');
+    var areaD='M'+Math.round(pts[0].x)+','+H2+' '+pts.map(function(p){return 'L'+Math.round(p.x)+','+Math.round(p.y);}).join(' ')+' L'+Math.round(pts[pts.length-1].x)+','+H2+' Z';
+
+    html += '<div class="pm-section-title">Andamento peso</div>';
+    html += '<svg viewBox="0 0 '+W+' '+(H+4)+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">';
+    // Area
+    html += '<path d="'+areaD+'" fill="'+pc.primary+'" opacity="0.08"/>';
+    // Linea
+    html += '<path d="'+pathD+'" fill="none" stroke="'+pc.primary+'" stroke-width="2" stroke-linejoin="round"/>';
+    // Punti + labels peso
+    pts.forEach(function(p,i){
+      html += '<circle cx="'+Math.round(p.x)+'" cy="'+Math.round(p.y)+'" r="3" fill="'+pc.primary+'"/>';
+      html += '<text x="'+Math.round(p.x)+'" y="'+(Math.round(p.y)-6)+'" text-anchor="middle" font-size="9" fill="'+pc.primary+'" font-weight="bold">'+vals[i]+'</text>';
+    });
+    // Asse x date
+    labels.forEach(function(lbl,i){
+      var x=padL+i/(labels.length-1)*W2;
+      html += '<text x="'+Math.round(x)+'" y="'+(H2+14)+'" text-anchor="middle" font-size="8" fill="#888">'+lbl+'</text>';
+    });
+    // Linee guida orizzontali
+    [0,0.5,1].forEach(function(t){
+      var y=Math.round(H2-t*H2);
+      var v=Math.round((minV+t*range)*10)/10;
+      html += '<line x1="'+padL+'" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="#e5e7eb" stroke-width="0.5"/>';
+      html += '<text x="'+(padL-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="8" fill="#aaa">'+v+'</text>';
+    });
+    html += '</svg>';
+  }
+  html += '</div>'; // fine pagina 1
+
+  // Pagina 2: Tabella storico completo
+  html += '<div class="pm-page">';
+  html += '<div class="pm-section-title" style="border-top:3px solid '+pc.primary+';padding-top:10px">Storico controlli — dati principali</div>';
+
+  html += '<table class="pm-table">';
+  html += '<thead><tr>'
+    +'<th>Data</th><th>Tipo visita</th><th>Peso</th><th>BMI</th>'
+    +'<th>%FM</th><th>FFM kg</th><th>%H₂O</th><th>Vita cm</th><th>Fianchi cm</th><th>WHR</th>'
+    +'</tr></thead><tbody>';
+
+  misurazioni.slice().reverse().forEach(function(m,i){
+    var c=computeMonFields(m);
+    var isLast=(i===misurazioni.length-1);
+    html += '<tr'+(isLast?' class="pm-last-row"':'')+'>'
+      +'<td style="white-space:nowrap;font-weight:'+(isLast?'700':'400')+'">'+fmtDate(m.data)+'</td>'
+      +'<td style="font-size:9px;color:#666">'+( m.tipo_visita||'—')+'</td>'
+      +'<td class="pm-num">'+fmtVal(m.peso,1)+'</td>'
+      +'<td class="pm-num">'+fmtVal(c.bmi,1)+'</td>'
+      +'<td class="pm-num">'+fmtVal(m.fm_perc,1)+'</td>'
+      +'<td class="pm-num">'+fmtVal(c.ffm_kg,1)+'</td>'
+      +'<td class="pm-num">'+fmtVal(m.acqua_perc,1)+'</td>'
+      +'<td class="pm-num">'+fmtVal(m.vita,1)+'</td>'
+      +'<td class="pm-num">'+fmtVal(m.fianchi,1)+'</td>'
+      +'<td class="pm-num">'+fmtVal(c.whr,2)+'</td>'
+      +'</tr>';
+  });
+  html += '</tbody></table>';
+
+  // Tabella circonferenze
+  var hasCirc = misurazioni.some(function(m){ return m.braccio_dx||m.coscia_dx||m.torace||m.collo; });
+  if(hasCirc){
+    html += '<div class="pm-section-title">Storico circonferenze</div>';
+    html += '<table class="pm-table"><thead><tr>'
+      +'<th>Data</th><th>Torace</th><th>Braccio dx</th><th>Braccio sx</th>'
+      +'<th>Coscia dx</th><th>Coscia sx</th><th>Polpaccio dx</th><th>Collo</th>'
+      +'</tr></thead><tbody>';
+    misurazioni.slice().reverse().forEach(function(m){
+      html += '<tr>'
+        +'<td style="white-space:nowrap">'+fmtDate(m.data)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.torace,1)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.braccio_dx,1)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.braccio_sx,1)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.coscia_dx,1)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.coscia_sx,1)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.polpaccio_dx,1)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.collo,1)+'</td>'
+        +'</tr>';
+    });
+    html += '</tbody></table>';
+  }
+  html += '</div>'; // fine pagina 2
+
+  // Pagina 3: Esami biochimici + note (solo se ci sono dati)
+  var hasEsami = misurazioni.some(function(m){ return m.glicemia||m.colest_tot||m.vit_d||m.tsh; });
+  if(hasEsami){
+    html += '<div class="pm-page">';
+    html += '<div class="pm-section-title" style="border-top:3px solid '+pc.primary+';padding-top:10px">Esami biochimici</div>';
+    html += '<table class="pm-table"><thead><tr>'
+      +'<th>Data</th><th>Glicemia</th><th>Col. TOT</th><th>LDL</th><th>HDL</th>'
+      +'<th>Trigliceridi</th><th>HbA1c</th><th>Vit. D</th><th>TSH</th><th>Pressione</th>'
+      +'</tr></thead><tbody>';
+    misurazioni.slice().reverse().forEach(function(m){
+      var hasRow=m.glicemia||m.colest_tot||m.colest_ldl||m.colest_hdl||m.trigliceridi||m.hba1c||m.vit_d||m.tsh||m.pressione;
+      if(!hasRow) return;
+      html += '<tr>'
+        +'<td style="white-space:nowrap">'+fmtDate(m.data)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.glicemia,0)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.colest_tot,0)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.colest_ldl,0)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.colest_hdl,0)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.trigliceridi,0)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.hba1c,1)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.vit_d,0)+'</td>'
+        +'<td class="pm-num">'+fmtVal(m.tsh,2)+'</td>'
+        +'<td class="pm-num" style="white-space:nowrap">'+fmtVal(m.pressione,0)+'</td>'
+        +'</tr>';
+    });
+    html += '</tbody></table>';
+
+    // Note cliniche
+    var hasNote = misurazioni.some(function(m){ return m.note_cliniche||m.obiettivo_attuale; });
+    if(hasNote){
+      html += '<div class="pm-section-title">Note cliniche per visita</div>';
+      misurazioni.slice().reverse().forEach(function(m){
+        if(!m.note_cliniche && !m.obiettivo_attuale) return;
+        html += '<div style="margin-bottom:10px;padding:8px 10px;border-left:3px solid '+pc.primary+';background:#f9fafb">'
+          +'<div style="font-size:10px;font-weight:700;color:'+pc.primary+';margin-bottom:4px">'+fmtDate(m.data)+(m.tipo_visita?' — '+m.tipo_visita:'')+'</div>'
+          +(m.note_cliniche?'<div style="font-size:10px;color:#374151;margin-bottom:3px">'+m.note_cliniche+'</div>':'')
+          +(m.obiettivo_attuale?'<div style="font-size:10px;color:#1D9E75;font-style:italic">🎯 '+m.obiettivo_attuale+'</div>':'')
+          +'</div>';
+      });
+    }
+    html += '</div>'; // fine pagina 3
+  }
+
+  // Statistica descrittiva finale
+  var pesiNum = misurazioni.map(function(m){return parseFloat(m.peso);}).filter(function(v){return !isNaN(v);});
+  if(pesiNum.length >= 2){
+    var pMin=Math.min.apply(null,pesiNum), pMax=Math.max.apply(null,pesiNum);
+    var pMean=Math.round(pesiNum.reduce(function(s,v){return s+v;},0)/pesiNum.length*10)/10;
+    var pSD=Math.round(Math.sqrt(pesiNum.reduce(function(s,v){return s+Math.pow(v-pMean,2);},0)/pesiNum.length)*10)/10;
+
+    html += '<div class="pm-page">';
+    html += '<div class="pm-section-title" style="border-top:3px solid '+pc.primary+';padding-top:10px">Statistica descrittiva</div>';
+    html += '<div class="pm-kpi-grid">';
+    [{lbl:'Peso minimo',v:pMin+'kg'},{lbl:'Peso massimo',v:pMax+'kg'},
+     {lbl:'Media',v:pMean+'kg'},{lbl:'Dev. standard',v:'±'+pSD+'kg'},
+     {lbl:'N° controlli',v:misurazioni.length},{lbl:'Durata percorso',v:fmtDate(misurazioni[misurazioni.length-1].data)+' → '+fmtDate(misurazioni[0].data)}
+    ].forEach(function(item){
+      html += '<div class="pm-kpi"><div class="pm-kpi-lbl">'+item.lbl+'</div>'
+        +'<div style="font-size:18px;font-weight:700;color:'+pc.primary+';margin:4px 0">'+item.v+'</div></div>';
+    });
+    html += '</div>';
+
+    // Footer
+    html += '<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:9px;color:#aaa">'
+      +'<span>'+pat.nome+' — Riepilogo misurazioni</span>'
+      +'<span>Documento riservato — uso clinico</span>'
+      +'<span>Emesso il '+dateStr+'</span></div>';
+    html += '</div>';
+  }
+
+  el('print-area').innerHTML = html;
+  setTimeout(function(){ window.print(); setTimeout(function(){ el('print-area').innerHTML=''; }, 1500); }, 200);
+}
+
 // ── RENDER MONITORAGGIO ───────────────────────────────────────────────────────
 async function renderMonitoraggio() {
   var pat = getPatientById(S.patientId);
@@ -1861,7 +2286,10 @@ async function renderMonitoraggio() {
   var html = '';
 
   // ── PULSANTE NUOVA MISURAZIONE ──
-  html += '<button class="btn-full btn-prim purple" onclick="openNuovaMisurazione()" style="margin-bottom:12px">＋ Nuova misurazione</button>';
+  html += '<div style="display:flex;gap:8px;margin-bottom:12px">'
+    +'<button class="btn-full btn-prim purple" onclick="openNuovaMisurazione()" style="flex:1">＋ Nuova misurazione</button>'
+    +(misurazioni.length>0?'<button onclick="stampaMisurazioni()" style="padding:12px 16px;background:var(--blue);color:white;border:none;border-radius:var(--rs);font-size:20px;cursor:pointer;flex-shrink:0" title="Stampa riepilogo">🖨️</button>':'')
+    +'</div>';
 
   // ── STATISTICHE & CONFRONTO ──
   if(misurazioni.length >= 2) {
@@ -2206,3 +2634,532 @@ async function confermaCancellaMisurazione(docId){
   } catch(e){ showToast('❌ Errore: '+e.message); }
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── FUNZIONALITÀ NUOVE ────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── FOOD MODAL TABS ───────────────────────────────────────────────────────────
+var _currentFoodTab = 'db';
+var _currentQtyMode = 'g';
+
+function setFoodTab(tab){
+  _currentFoodTab = tab;
+  document.querySelectorAll('.fmt-tab').forEach(function(b,i){
+    b.classList.toggle('active',['db','manuale','ricette'][i]===tab);
+  });
+  el('foodTab_db').style.display = tab==='db'?'block':'none';
+  el('foodTab_manuale').style.display = tab==='manuale'?'block':'none';
+  el('foodTab_ricette').style.display = tab==='ricette'?'block':'none';
+  if(tab==='ricette') renderRicetteInModal();
+}
+
+function setQtyMode(mode){
+  _currentQtyMode = mode;
+  ['g','pz','qb'].forEach(function(m){
+    var btn=el('btnMode'+(m==='g'?'Grams':m==='pz'?'Pezzi':'QB'));
+    if(btn) btn.classList.toggle('active', m===mode);
+    var div=el('qtyMode'+(m==='g'?'Grams':m==='pz'?'Pezzi':'QB'));
+    if(div) div.style.display = m===mode?'block':'none';
+  });
+}
+
+function setManualQB(){
+  var inp = el('inQtyFree');
+  if(inp) inp.value = 'QB';
+}
+
+// ── PEZZI CON PESO UNITARIO ───────────────────────────────────────────────────
+// Categorie con peso unitario noto
+var PESI_UNITARI = {
+  'Gallette di riso classiche': 9, 'Gallette di riso integrale': 9,
+  'Gallette di mais': 9, 'Gallette di farro': 9, 'Gallette riso e mais': 9,
+  'Oro Saiwa Classici': 7.5, 'Oro Saiwa Fibrattiva': 7.5,
+  'Digestive McVitie\'s Original': 14, 'Digestive McVitie\'s Integrali': 14,
+  'Pavesini classici': 6, 'Lotus Biscoff': 7,
+  'Wasa Crispbread Integrale': 11, 'Wasa Crispbread Sesamo': 11,
+  'Amaretti Lazzaroni': 10,
+  'Mandorle': 1.2, 'Noci': 5, 'Nocciole': 1.5, 'Anacardi': 2,
+  'Pistacchi': 1.5, 'Arachidi tostate salate': 1, 'Pinoli': 0.2,
+  'Mela': 150, 'Pera': 170, 'Banana': 120, 'Kiwi': 80,
+  'Arancia': 200, 'Mandarino': 100, 'Clementine senza semi': 60,
+  'Albicocche fresche': 40, 'Prugna fresca': 50, 'Fragole': 15,
+  'Uovo intero (50g)': 50, 'Albume d\'uovo': 30, 'Tuorlo d\'uovo': 20,
+  'Dattero secco': 8, 'Fico secco': 15,
+  'Lindt Lindor Fondente (pezzo 12g)': 12, 'Lindt Lindor Latte (pezzo 12g)': 12,
+  'Perugina Baci Classico (pezzo 12g)': 12, 'Ferrero Rocher (pezzo 12.5g)': 12.5,
+  'Gianduiotto (pezzo 10g)': 10,
+};
+
+function getPesoUnitario(foodName){
+  if(PESI_UNITARI[foodName]) return PESI_UNITARI[foodName];
+  // Stima da nome — cerca "(pezzo Xg)" o "(uno, Xg)"
+  var m = (foodName||'').match(/\((?:pezzo|uno|1 ?\w+)[^)]*?(\d+(?:\.\d+)?)g\)/i);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function onPezziChange(){
+  var pz = parseFloat(el('inQtyPezzi').value)||1;
+  var food = S.selFood;
+  if(!food) return;
+  var pw = getPesoUnitario(food.name) || food.pesoUnitario;
+  if(!pw){
+    el('pezzoInfo').innerHTML = '<span style="color:var(--amber-d)">⚠️ Peso unitario non disponibile — usa i grammi</span>';
+    return;
+  }
+  var grams = pz * pw;
+  var ratio = grams/100;
+  el('pezzoInfo').innerHTML = '1 pezzo ≈ '+pw+'g &nbsp;→&nbsp; <strong>'+r(grams)+'g totali</strong> &nbsp;|&nbsp;'
+    +r(food.kcal*ratio)+' kcal | P'+r(food.p*ratio,1)+'g C'+r(food.c*ratio,1)+'g G'+r(food.fat*ratio,1)+'g';
+}
+
+// ── UPDATE selectFood to handle pezzi ─────────────────────────────────────────
+var _origSelectFood = selectFood;
+function selectFood(idx){
+  _origSelectFood(idx);
+  var f = FOOD_INDEX[idx];
+  var pw = getPesoUnitario(f.name);
+  // Show pezzi button only if food has known unit weight or is in pieces category
+  var cats = ['Frutta','Biscotti & Gallette','Dolci & Dessert','Frutta secca','Uova'];
+  var hasPw = !!pw || cats.some(function(c){return f.cat&&f.cat.includes(c.split(' ')[0]);});
+  el('btnModePezzi').style.display = hasPw?'block':'none';
+  el('pezzoInfo').textContent = pw ? '1 pezzo ≈ '+pw+'g' : '';
+  // Reset to grams mode
+  setQtyMode('g');
+}
+
+// ── UPDATE saveFood to handle pezzi/QB modes ──────────────────────────────────
+var _origSaveFood = saveFood;
+window._origSaveFood = _origSaveFood;
+function editFood(dayIdx, pId, foodIdx){
+  var pat=getPatientById(S.patientId);
+  var dieta=getDietaForWeek(pat, S.weekOffset);
+  var food=(dieta.giorni&&dieta.giorni[dayIdx]&&dieta.giorni[dayIdx][pId]&&dieta.giorni[dayIdx][pId][foodIdx]);
+  if(!food){showToast('Alimento non trovato');return;}
+  S.editCtx={dayIdx:dayIdx, pId:pId, editFoodIdx:foodIdx};
+  S.selFood=null; S.manualOpen=true; _currentQtyMode='free';
+  el('modalFoodTitle').textContent='✏️ Modifica — '+food.n;
+  el('btnSaveFood').textContent='Salva modifiche';
+  el('searchInp').value=''; el('searchClear').style.display='none';
+  closeSugg();
+  el('selFoodBox').classList.remove('vis');
+  el('qtySection').style.display='none';
+  // Pre-fill manual form
+  el('inName').value=food.n||'';
+  el('inQtyFree').value=food.q||'';
+  el('inKcal').value=food.kcal||0;
+  el('inProt').value=food.p||0;
+  el('inCarb').value=food.c||0;
+  el('inFat').value=food.fat||food.f||0;
+  setFoodTab('manuale');
+  el('manualSec').classList.add('open');
+  el('manualToggle').textContent='▲ Chiudi inserimento manuale';
+  openModal('modalFood');
+  setTimeout(function(){el('inName').focus();},300);
+}
+
+async function saveFood(){
+  var food = null;
+  if(_currentFoodTab === 'db' && S.selFood && _currentQtyMode !== 'qb'){
+    var f = S.selFood;
+    var grams;
+    if(_currentQtyMode === 'pz'){
+      var pz = parseFloat(el('inQtyPezzi').value)||1;
+      var pw = getPesoUnitario(f.name) || 1;
+      grams = pz * pw;
+      var ratio = grams/100;
+      food = {n:f.name, q:pz+' '+(pz===1?'pezzo':'pezzi')+' ('+r(grams)+'g)',
+        kcal:r(f.kcal*ratio), p:r(f.p*ratio,1), c:r(f.c*ratio,1), fat:r(f.fat*ratio,1), fi:r((f.fiber||0)*ratio,1)};
+    } else {
+      grams = parseFloat(el('inQtyG').value)||100;
+      var ratio2 = grams/100;
+      food = {n:f.name, q:grams+'g', kcal:r(f.kcal*ratio2), p:r(f.p*ratio2,1), c:r(f.c*ratio2,1), fat:r(f.fat*ratio2,1), fi:r((f.fiber||0)*ratio2,1)};
+    }
+  } else if(_currentFoodTab === 'db' && S.selFood && _currentQtyMode === 'qb'){
+    var f2 = S.selFood;
+    food = {n:f2.name, q:'QB', kcal:f2.kcal, p:f2.p, c:f2.c, fat:f2.fat, fi:f2.fiber||0, isQB:true};
+  } else if(_currentFoodTab === 'manuale'){
+    var n = el('inName').value.trim();
+    if(!n){showToast('⚠️ Inserisci il nome');return;}
+    food = {n:n, q:el('inQtyFree').value.trim()||'—',
+      kcal:parseFloat(el('inKcal').value)||0, p:parseFloat(el('inProt').value)||0,
+      c:parseFloat(el('inCarb').value)||0, fat:parseFloat(el('inFat').value)||0, fi:0};
+  } else {
+    showToast('⚠️ Seleziona un alimento o inseriscilo manualmente'); return;
+  }
+
+  // Edit mode vs add mode
+  var pat = ensureDieta(getPatientById(S.patientId));
+  if(S.editCtx.isAB){
+    var tDieta = AB.editKey==='A'?pat.dietaA:pat.dietaB;
+    if(S.editCtx.editFoodIdx !== undefined){
+      tDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId][S.editCtx.editFoodIdx] = food;
+    } else {
+      tDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
+    }
+    await updatePatient(pat); closeModal('modalFood'); renderConfigAB();
+  } else {
+    var dietaKey = S.activeDietKey||'A';
+    var targetDieta = pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
+    if(S.editCtx.editFoodIdx !== undefined){
+      targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId][S.editCtx.editFoodIdx] = food;
+    } else {
+      targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
+    }
+    await updatePatient(pat); closeModal('modalFood'); renderMeals(); renderHeader();
+  }
+  showToast((S.editCtx.editFoodIdx!==undefined?'✅ Alimento modificato!':'✅ '+food.n+' aggiunto!'));
+}
+
+// ── MODIFICA ALIMENTO ─────────────────────────────────────────────────────────
+function openEditFood(dayIdx, pId, foodIdx, isAB){
+  var pat = getPatientById(S.patientId);
+  if(!pat) return;
+  ensureDieta(pat);
+  var dieta = isAB ? (AB.editKey==='A'?pat.dietaA:pat.dietaB) : getDietaForWeek(pat, S.weekOffset);
+  var food = (dieta.giorni[dayIdx]||{})[pId][foodIdx];
+  if(!food) return;
+
+  S.editCtx = {dayIdx:dayIdx, pId:pId, editFoodIdx:foodIdx, isAB:!!isAB};
+  S.selFood = null; S.manualOpen = false;
+  el('modalFoodTitle').textContent = '✏️ Modifica: '+food.n;
+
+  // Reset modal state
+  el('searchInp').value=''; el('searchClear').style.display='none';
+  closeSugg();
+  el('selFoodBox').classList.remove('vis');
+  el('qtySection').style.display='none';
+  el('manualSec').classList.remove('open');
+
+  // Open in manuale tab with values pre-filled
+  setFoodTab('manuale');
+  el('inName').value = food.n;
+  el('inQtyFree').value = food.q||'';
+  el('inKcal').value = food.kcal||'';
+  el('inProt').value = food.p||'';
+  el('inCarb').value = food.c||'';
+  el('inFat').value = food.fat||food.f||'';
+
+  el('btnSaveFood').textContent = '💾 Salva modifiche';
+  openModal('modalFood');
+}
+
+// ── COPIA PASTO ───────────────────────────────────────────────────────────────
+var _copyBuffer = null; // {pId, cibi, note}
+
+function openCopyPasto(fromPId, fromPNome){
+  var pat = getPatientById(S.patientId);
+  if(!pat){showToast('Nessun paziente'); return;}
+  ensureDieta(pat);
+  var dieta = getDietaForWeek(pat, S.weekOffset);
+  var cibi = (dieta.giorni[S.selDay]||{})[fromPId]||[];
+  if(!cibi.length){showToast('⚠️ Pasto vuoto, nulla da copiare'); return;}
+
+  var GG_FULL=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+
+  var content = el('modalCopyPastoContent');
+  content.innerHTML = '';
+
+  var handle=document.createElement('div'); handle.className='modal-handle'; content.appendChild(handle);
+  var title=document.createElement('div'); title.className='modal-title';
+  title.textContent='📋 Copia "'+fromPNome+'"'; content.appendChild(title);
+
+  var info=document.createElement('div');
+  info.style.cssText='background:var(--blue-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-d)';
+  info.innerHTML='<strong>'+cibi.length+' alimenti</strong> da '+GG_FULL[S.selDay];
+  content.appendChild(info);
+
+  var lbl1=document.createElement('label'); lbl1.className='lbl';
+  lbl1.textContent='Copia in quale giorno?'; content.appendChild(lbl1);
+  var selDay=document.createElement('select'); selDay.className='inp'; selDay.id='copyTargetDay';
+  GG_FULL.forEach(function(g,i){
+    var opt=document.createElement('option'); opt.value=i;
+    opt.textContent=g+(i===S.selDay?' (questo giorno)':'');
+    opt.selected=(i===S.selDay); selDay.appendChild(opt);
+  });
+  content.appendChild(selDay);
+
+  var lbl2=document.createElement('label'); lbl2.className='lbl';
+  lbl2.textContent='Copia in quale pasto?'; content.appendChild(lbl2);
+  var selPasto=document.createElement('select'); selPasto.className='inp'; selPasto.id='copyTargetPasto';
+  PASTI.forEach(function(p){
+    var opt=document.createElement('option'); opt.value=p.id;
+    opt.textContent=p.emoji+' '+p.nome+(p.id===fromPId?' (questo pasto)':'');
+    selPasto.appendChild(opt);
+  });
+  content.appendChild(selPasto);
+
+  var chkSostitui=document.createElement('label');
+  chkSostitui.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;cursor:pointer';
+  chkSostitui.innerHTML='<input type="checkbox" id="copyOverwrite" style="width:16px;height:16px"> Sostituisci (cancella alimenti esistenti nel pasto di destinazione)';
+  content.appendChild(chkSostitui);
+
+  var btnCopia=document.createElement('button'); btnCopia.className='btn-full btn-prim';
+  btnCopia.textContent='📋 Copia pasto';
+  btnCopia.onclick=function(){ eseguiCopiaPasto(fromPId, JSON.parse(JSON.stringify(cibi))); };
+  content.appendChild(btnCopia);
+
+  var btnAnn=document.createElement('button'); btnAnn.className='btn-full btn-sec';
+  btnAnn.textContent='Annulla';
+  btnAnn.onclick=function(){ closeModal('modalCopyPasto'); };
+  content.appendChild(btnAnn);
+
+  openModal('modalCopyPasto');
+}
+
+async function eseguiCopiaPasto(fromPId, cibi){
+  var targetDay=parseInt(el('copyTargetDay').value);
+  var targetPasto=el('copyTargetPasto').value;
+  var overwrite=el('copyOverwrite').checked;
+
+  var pat=ensureDieta(getPatientById(S.patientId));
+  var dietaKey=S.activeDietKey||'A';
+  var targetDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
+  if(!targetDieta.giorni[targetDay]) targetDieta.giorni[targetDay]={colazione:[],spuntino_m:[],pranzo:[],merenda:[],cena:[],note:{}};
+
+  if(overwrite){
+    targetDieta.giorni[targetDay][targetPasto]=JSON.parse(JSON.stringify(cibi));
+  } else {
+    targetDieta.giorni[targetDay][targetPasto]=targetDieta.giorni[targetDay][targetPasto].concat(JSON.parse(JSON.stringify(cibi)));
+  }
+  await updatePatient(pat);
+  closeModal('modalCopyPasto');
+  showToast('✅ Pasto copiato! ('+cibi.length+' alimenti)');
+  renderMeals();
+}
+
+// ── RICETTE ───────────────────────────────────────────────────────────────────
+var _ricetteCache = null;
+
+async function loadRicette(){
+  if(_ricetteCache) return _ricetteCache;
+  try{
+    var snap=await db.collection('ricette').where('nutriId','==',S.nutriId).get();
+    _ricetteCache=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+    _ricetteCache.sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');});
+    return _ricetteCache;
+  }catch(e){console.error('loadRicette:',e);return [];}
+}
+
+async function saveRicettaToFS(ricetta){
+  var docId=ricetta.id||('r-'+uid());
+  await db.collection('ricette').doc(docId).set(Object.assign({},ricetta,{id:undefined,nutriId:S.nutriId}),{merge:true});
+  _ricetteCache=null; // invalidate cache
+  return docId;
+}
+
+async function deleteRicettaFromFS(docId){
+  await db.collection('ricette').doc(docId).delete();
+  _ricetteCache=null;
+}
+
+function renderRicetteInModal(){
+  var box=el('ricetteList'); if(!box) return;
+  box.innerHTML='<div style="text-align:center;color:var(--text-sec);font-size:13px;padding:16px">⏳ Caricamento...</div>';
+  loadRicette().then(function(ricette){
+    var html='<button class="btn-full btn-prim" style="margin-bottom:10px" onclick="openNuovaRicetta()">＋ Crea nuova ricetta</button>';
+    if(!ricette.length){
+      html+='<div class="empty-state"><div class="empty-state-icon">👨‍🍳</div><div class="empty-state-title">Nessuna ricetta salvata</div><div class="empty-state-sub">Crea la tua prima ricetta e riutilizzala con tutti i pazienti.</div></div>';
+    } else {
+      ricette.forEach(function(ric){
+        var totKcal=r((ric.ingredienti||[]).reduce(function(s,i){return s+(i.kcal||0);},0));
+        var totP=r((ric.ingredienti||[]).reduce(function(s,i){return s+(i.p||0);},0),1);
+        var totC=r((ric.ingredienti||[]).reduce(function(s,i){return s+(i.c||0);},0),1);
+        var totF=r((ric.ingredienti||[]).reduce(function(s,i){return s+(i.fat||0);},0),1);
+        html+='<div class="ricetta-card" onclick="aggiungiRicettaAlPasto(\''+ric.id+'\')">'
+          +'<div class="ricetta-card-title">'+ric.nome+'</div>'
+          +'<div class="ricetta-card-meta">'+(ric.ingredienti||[]).length+' ingredienti &nbsp;·&nbsp; '+totKcal+' kcal | P'+totP+'g C'+totC+'g G'+totF+'g'+(ric.porzioni>1?' | '+ric.porzioni+' porzioni':'')+'</div>'
+          +'<div style="display:flex;gap:6px;margin-top:8px" onclick="event.stopPropagation()">'
+          +'<button class="food-copy-btn" onclick="openEditRicetta(\''+ric.id+'\')">✏️ Modifica</button>'
+          +'<button class="food-copy-btn" style="background:var(--red-l,#FFE4E4);color:#C0392B" onclick="confDeleteRicetta(\''+ric.id+'\',\''+ric.nome.replace(/'/g,'')+'\')">🗑️</button>'
+          +'</div></div>';
+      });
+    }
+    if(box) box.innerHTML=html;
+  });
+}
+
+async function aggiungiRicettaAlPasto(ricId){
+  var ricette=await loadRicette();
+  var ric=ricette.find(function(r){return r.id===ricId;});
+  if(!ric){showToast('Ricetta non trovata');return;}
+  var porzioni=ric.porzioni||1;
+  var ingr=ric.ingredienti||[];
+  if(!ingr.length){showToast('⚠️ Ricetta senza ingredienti');return;}
+  // Aggiungi ogni ingrediente come voce separata (diviso per porzioni)
+  var cibi=ingr.map(function(ing){
+    var ratio=1/porzioni;
+    return {n:ing.n+' ('+ric.nome+')', q:ing.q, kcal:r(ing.kcal*ratio), p:r(ing.p*ratio,1), c:r(ing.c*ratio,1), fat:r(ing.fat*ratio,1), fi:r((ing.fi||0)*ratio,1)};
+  });
+
+  var pat=ensureDieta(getPatientById(S.patientId));
+  if(S.editCtx.isAB){
+    var tDieta=AB.editKey==='A'?pat.dietaA:pat.dietaB;
+    cibi.forEach(function(f){tDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(f);});
+    await updatePatient(pat); closeModal('modalFood'); renderConfigAB();
+  } else {
+    var dietaKey=S.activeDietKey||'A';
+    var targetDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
+    cibi.forEach(function(f){targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(f);});
+    await updatePatient(pat); closeModal('modalFood'); renderMeals(); renderHeader();
+  }
+  showToast('✅ Ricetta "'+ric.nome+'" aggiunta!');
+}
+
+function openNuovaRicetta(ricId){
+  _ricetteCache=null; // force reload after save
+  var isEdit=!!ricId;
+  var ric=null;
+  if(isEdit && _ricetteCache){
+    ric=_ricetteCache.find(function(r){return r.id===ricId;})||{ingredienti:[]};
+  }
+  buildRicettaModal(isEdit?ric:null);
+}
+
+function openEditRicetta(ricId){
+  loadRicette().then(function(ricette){
+    var ric=ricette.find(function(r){return r.id===ricId;})||null;
+    buildRicettaModal(ric);
+  });
+}
+
+function buildRicettaModal(ric){
+  var isEdit=!!(ric&&ric.id);
+  var _ingr=ric&&ric.ingredienti?JSON.parse(JSON.stringify(ric.ingredienti)):[];
+  var content=el('modalRicettaContent');
+  content.innerHTML='';
+
+  function render(){
+    var totKcal=r(_ingr.reduce(function(s,i){return s+(i.kcal||0);},0));
+    var totP=r(_ingr.reduce(function(s,i){return s+(i.p||0);},0),1);
+    var totC=r(_ingr.reduce(function(s,i){return s+(i.c||0);},0),1);
+    var totF=r(_ingr.reduce(function(s,i){return s+(i.fat||0);},0),1);
+
+    content.innerHTML='';
+    var hdiv=document.createElement('div');hdiv.className='modal-handle';content.appendChild(hdiv);
+    var tdiv=document.createElement('div');tdiv.className='modal-title';
+    tdiv.textContent=(isEdit?'✏️ Modifica':'👨‍🍳 Nuova')+' ricetta';content.appendChild(tdiv);
+
+    // Nome ricetta
+    var l1=document.createElement('label');l1.className='lbl';l1.textContent='Nome ricetta';content.appendChild(l1);
+    var inNome=document.createElement('input');inNome.className='inp';inNome.id='ricNome';inNome.placeholder='es. Pasta al salmone';
+    inNome.value=ric&&ric.nome?ric.nome:'';content.appendChild(inNome);
+
+    // Porzioni
+    var rowPorz=document.createElement('div');
+    rowPorz.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0';
+    rowPorz.innerHTML='<div><label class="lbl">Porzioni totali</label><input type="number" class="inp" id="ricPorzioni" value="'+(ric&&ric.porzioni?ric.porzioni:1)+'" min="1"></div>'
+      +'<div><label class="lbl">Categoria</label><input type="text" class="inp" id="ricCategoria" placeholder="es. Primo piatto" value="'+(ric&&ric.categoria?ric.categoria:'')+'"></div>';
+    content.appendChild(rowPorz);
+
+    // Ingredienti list
+    var secIng=document.createElement('div');
+    secIng.className='sec-title';secIng.textContent='Ingredienti';content.appendChild(secIng);
+
+    if(_ingr.length){
+      var ingDiv=document.createElement('div');
+      _ingr.forEach(function(ing,idx){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;background:var(--bg-sec);border-radius:var(--rs);padding:8px 10px;font-size:12px';
+        row.innerHTML='<div style="flex:1"><strong>'+ing.n+'</strong> <span style="color:var(--text-sec)">'+ing.q+'</span></div>'
+          +'<div style="color:var(--text-sec);white-space:nowrap">'+r(ing.kcal)+'kcal</div>'
+          +'<button onclick="ingr_remove('+idx+')" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-sec);padding:2px 4px">✕</button>';
+        ingDiv.appendChild(row);
+      });
+      content.appendChild(ingDiv);
+    }
+
+    // Totali
+    if(_ingr.length){
+      var totDiv=document.createElement('div');
+      totDiv.style.cssText='background:var(--blue-l);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--blue-d)';
+      totDiv.textContent='Totale ricetta: '+totKcal+' kcal | P'+totP+'g C'+totC+'g G'+totF+'g';
+      content.appendChild(totDiv);
+    }
+
+    // Add ingredient form
+    var addDiv=document.createElement('div');
+    addDiv.style.cssText='border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:12px';
+    addDiv.innerHTML='<label class="lbl" style="margin-bottom:6px">Aggiungi ingrediente</label>'
+      +'<input type="text" class="inp" id="ingNome" placeholder="Nome alimento" style="margin-bottom:6px">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'
+      +'<input type="text" class="inp" id="ingQty" placeholder="Quantità (es. 80g)">'
+      +'<input type="number" class="inp" id="ingKcal" placeholder="Kcal" inputmode="decimal">'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'
+      +'<input type="number" class="inp" id="ingP" placeholder="Prot g" inputmode="decimal">'
+      +'<input type="number" class="inp" id="ingC" placeholder="Carb g" inputmode="decimal">'
+      +'<input type="number" class="inp" id="ingF" placeholder="Grassi g" inputmode="decimal">'
+      +'</div>'
+      +'<button class="btn-full btn-prim" onclick="ingr_add()">＋ Aggiungi ingrediente</button>';
+    content.appendChild(addDiv);
+
+    // Save / cancel
+    var btnSave=document.createElement('button');btnSave.className='btn-full btn-prim purple';
+    btnSave.style.marginBottom='6px';
+    btnSave.textContent=(isEdit?'💾 Aggiorna ricetta':'💾 Salva ricetta');
+    btnSave.onclick=function(){
+      var nome=el('ricNome').value.trim();
+      if(!nome){showToast('⚠️ Inserisci il nome della ricetta');return;}
+      if(!_ingr.length){showToast('⚠️ Aggiungi almeno un ingrediente');return;}
+      var toSave={id:ric&&ric.id?ric.id:null,nome:nome,
+        porzioni:parseInt(el('ricPorzioni').value)||1,
+        categoria:el('ricCategoria').value.trim(),
+        ingredienti:_ingr, updatedAt:new Date().toISOString()};
+      saveRicettaToFS(toSave).then(function(){
+        closeModal('modalRicetta');
+        showToast('✅ Ricetta "'+nome+'" salvata!');
+        _ricetteCache=null;
+        renderRicetteInModal();
+      }).catch(function(e){showToast('⚠️ Errore: '+e.message);});
+    };
+    content.appendChild(btnSave);
+
+    var btnCanc=document.createElement('button');btnCanc.className='btn-full btn-sec';
+    btnCanc.textContent='Annulla';btnCanc.onclick=function(){closeModal('modalRicetta');};
+    content.appendChild(btnCanc);
+  }
+
+  // Exposed to HTML onclick
+  window.ingr_remove=function(idx){_ingr.splice(idx,1);render();};
+  window.ingr_add=function(){
+    var n=el('ingNome').value.trim();
+    if(!n){showToast('⚠️ Inserisci il nome');return;}
+    _ingr.push({n:n, q:el('ingQty').value.trim()||'—',
+      kcal:parseFloat(el('ingKcal').value)||0, p:parseFloat(el('ingP').value)||0,
+      c:parseFloat(el('ingC').value)||0, fat:parseFloat(el('ingF').value)||0, fi:0});
+    render();
+    // Auto-search in DB
+    setTimeout(function(){var inp=el('ingNome');if(inp)inp.focus();},100);
+  };
+
+  render();
+  openModal('modalRicetta');
+}
+
+async function confDeleteRicetta(ricId, nome){
+  if(!confirm('Eliminare la ricetta "'+nome+'"?')) return;
+  await deleteRicettaFromFS(ricId);
+  showToast('🗑️ Ricetta eliminata');
+  _ricetteCache=null;
+  renderRicetteInModal();
+}
+
+// ── FIX configAB: rimuovi spazio iniziale e padding bottom ───────────────────
+// Il div tab-configAB ha overflow e il contenuto va sotto la nav bar
+// → gestiamo via CSS aggiungendo padding-bottom nel contenuto
+// (vedi CSS aggiunto in index.html)
+
+// ── EXPOSE NUOVE FUNZIONI GLOBALMENTE ─────────────────────────────────────────
+window.setFoodTab = setFoodTab;
+window.setQtyMode = setQtyMode;
+window.setManualQB = setManualQB;
+window.onPezziChange = onPezziChange;
+window.openEditFood = openEditFood;
+window.openCopyPasto = openCopyPasto;
+window.eseguiCopiaPasto = eseguiCopiaPasto;
+window.openNuovaRicetta = openNuovaRicetta;
+window.openEditRicetta = openEditRicetta;
+window.confDeleteRicetta = confDeleteRicetta;
+window.aggiungiRicettaAlPasto = aggiungiRicettaAlPasto;
+window.renderRicetteInModal = renderRicetteInModal;

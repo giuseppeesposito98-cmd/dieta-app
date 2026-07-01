@@ -68,7 +68,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .tab.active{color:var(--blue);border-bottom-color:var(--blue)}
 .tab.active.purple{color:var(--purple);border-bottom-color:var(--purple)}
 /* ── CONTENT ── */
-.content{padding:12px;max-width:600px;margin:0 auto;flex:1;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.content{padding:12px;max-width:600px;margin:0 auto;flex:1;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .screen{display:none}.screen.active{display:block}
 /* ── DAY SEL ── */
 .day-sel{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
@@ -236,6 +236,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .btn-inst{background:#fff;color:#0d2235;border:none;border-radius:var(--rs);padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap}
 select.inp{appearance:none;-webkit-appearance:none}
 
+/* ── FOOD MODAL TABS ── */
+.food-modal-tabs{display:flex;gap:4px;margin-bottom:12px}
+.fmt-tab{flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg-sec);color:var(--text-sec);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.fmt-tab.active{background:var(--blue);color:white;border-color:var(--blue)}
+.qty-mode-switch{display:flex;gap:4px;margin-bottom:8px}
+.qms-btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg-sec);color:var(--text-sec);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.qms-btn.active{background:var(--green);color:white;border-color:var(--green)}
+.food-row-actions{display:flex;gap:4px;margin-left:auto;flex-shrink:0}
+.food-edit{background:none;border:none;cursor:pointer;font-size:13px;color:var(--blue);padding:2px 4px;opacity:.7}
+.food-edit:hover{opacity:1}
+.food-copy-btn{background:var(--blue-l);color:var(--blue-d);border:none;border-radius:var(--rs);font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer}
+.ricetta-card{background:var(--bg-sec);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.ricetta-card:hover{border-color:var(--blue);background:var(--blue-l)}
+.ricetta-card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.ricetta-card-meta{font-size:11px;color:var(--text-sec)}
+
 /* ── WEEK NAV ── */
 .week-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .week-nav-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
@@ -244,6 +260,15 @@ select.inp{appearance:none;-webkit-appearance:none}
 .diet-key-switch{display:flex;gap:6px;margin-bottom:8px}
 .dks-btn{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--bg-sec);color:var(--text-sec);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
 .dks-btn.active{background:var(--purple-l);color:var(--purple-d);border-color:var(--purple)}
+
+.qty-tabs{display:flex;gap:4px;margin-bottom:10px}
+.qty-tab{flex:1;padding:7px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg-sec);color:var(--text-sec);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s}
+.qty-tab.active{background:var(--blue);color:white;border-color:var(--blue)}
+.qty-presets-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.food-act{background:none;border:none;font-size:14px;cursor:pointer;padding:2px 4px;opacity:0.7;transition:opacity .15s}
+.food-act:hover{opacity:1}
+.btn-act-sm{padding:7px 10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg-sec);color:var(--text);font-size:15px;cursor:pointer;transition:all .15s;flex-shrink:0}
+.btn-act-sm:active{background:var(--blue-l);border-color:var(--blue)}
 
 .color-palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .color-swatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0}
@@ -315,6 +340,29 @@ select.inp{appearance:none;-webkit-appearance:none}
   .p-footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0; display: flex; justify-content: space-between; font-size: 9px; color: #aaa; }
   .p-page-num::after { content: "Pag. " counter(page); }
   @counter-style page { system: numeric; }
+
+  /* ── MISURAZIONI PRINT ── */
+  .pm-page { page-break-after: always; padding-bottom: 8px; }
+  .pm-page:last-child { page-break-after: avoid; }
+  .pm-header { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 2px solid #1a1a1a; margin-bottom: 14px; }
+  .pm-logo img { max-height: 44px; max-width: 140px; object-fit: contain; display: block; }
+  .pm-logo-txt { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #1a1a1a; }
+  .pm-header-info { flex: 1; }
+  .pm-paziente { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+  .pm-meta { font-size: 10px; color: #888; }
+  .pm-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #888; margin: 12px 0 8px; }
+  .pm-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .pm-kpi { background: #f9fafb; border-radius: 5px; padding: 8px 10px; }
+  .pm-kpi-lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .pm-kpi-vals { font-size: 11px; color: #374151; }
+  .pm-kpi-arrow { color: #ccc; margin: 0 4px; }
+  .pm-kpi-delta { font-size: 13px; font-weight: 700; margin-top: 3px; }
+  .pm-table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 14px; table-layout: fixed; }
+  .pm-table th { background: #1a1a1a; color: white; padding: 5px 6px; text-align: left; font-weight: 700; font-size: 9px; white-space: nowrap; }
+  .pm-table td { padding: 4px 6px; border-bottom: 0.5px solid #e5e7eb; vertical-align: middle; }
+  .pm-table tr:nth-child(even) td { background: #f9fafb; }
+  .pm-table .pm-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pm-last-row td { background: #eff6ff !important; font-weight: 700; }
 }
 #print-area { display: none; }{ display: none; }
 </style>
@@ -477,32 +525,91 @@ select.inp{appearance:none;-webkit-appearance:none}
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="modalFoodTitle">Aggiungi alimento</div>
-    <label class="lbl">Cerca nel database (293 alimenti)</label>
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" class="search-inp" id="searchInp" placeholder="es. petto di pollo, riso, mela..." autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
-      <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+    <!-- Tabs: Database / Manuale / Ricette -->
+    <div class="food-modal-tabs" id="foodModalTabs">
+      <button class="fmt-tab active" onclick="setFoodTab('db')">🔍 Database</button>
+      <button class="fmt-tab" onclick="setFoodTab('manuale')">✏️ Manuale</button>
+      <button class="fmt-tab" onclick="setFoodTab('ricette')">👨‍🍳 Ricette</button>
     </div>
-    <div class="suggestions" id="suggestions"></div>
-    <div class="sel-food-box" id="selFoodBox">
-      <div class="sf-name" id="selFoodName"></div>
-      <div class="sf-macros" id="selFoodMacros"></div>
+
+    <!-- TAB: Database -->
+    <div id="foodTab_db">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-inp" id="searchInp" placeholder="es. petto di pollo, riso, mela..." autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+      </div>
+      <div class="suggestions" id="suggestions"></div>
+      <div class="sel-food-box" id="selFoodBox">
+        <div class="sf-name" id="selFoodName"></div>
+        <div class="sf-macros" id="selFoodMacros"></div>
+      </div>
+      <div id="qtySection" style="display:none">
+        <div class="qty-mode-switch">
+          <button class="qms-btn active" id="btnModeGrams" onclick="setQtyMode('g')">Grammi</button>
+          <button class="qms-btn" id="btnModePezzi" onclick="setQtyMode('pz')">Pezzi</button>
+          <button class="qms-btn" id="btnModeQB" onclick="setQtyMode('qb')">QB</button>
+        </div>
+        <div id="qtyModeGrams">
+          <div class="qty-presets" id="qtyPresets"></div>
+          <input type="number" class="inp" id="inQtyG" placeholder="Grammi" inputmode="decimal" oninput="onQtyChange()">
+        </div>
+        <div id="qtyModePezzi" style="display:none">
+          <div id="pezzoInfo" style="font-size:12px;color:var(--text-sec);margin-bottom:6px"></div>
+          <input type="number" class="inp" id="inQtyPezzi" placeholder="Numero pezzi" inputmode="decimal" min="1" oninput="onPezziChange()">
+        </div>
+        <div id="qtyModeQB" style="display:none">
+          <div style="background:var(--blue-l);border-radius:var(--rs);padding:10px 12px;font-size:13px;color:var(--blue-d)">
+            💡 QB = Quanto Basta. Saranno registrate le kcal del prodotto per 100g. Puoi specificare la quantità approssimativa nella nota.
+          </div>
+        </div>
+      </div>
     </div>
-    <div id="qtySection" style="display:none">
+
+    <!-- TAB: Manuale -->
+    <div id="foodTab_manuale" style="display:none">
+      <label class="lbl">Nome alimento</label>
+      <input type="text" class="inp" id="inName" placeholder="es. Pizza fatta in casa">
       <label class="lbl">Quantità</label>
-      <div class="qty-presets" id="qtyPresets"></div>
-      <input type="number" class="inp" id="inQtyG" placeholder="Grammi personalizzati" inputmode="decimal" oninput="onQtyChange()">
+      <div style="display:flex;gap:6px">
+        <input type="text" class="inp" id="inQtyFree" placeholder="es. 1 porzione, 2 fette..." style="flex:1">
+        <button onclick="setManualQB()" style="padding:10px 12px;background:var(--bg-sec);border:1px solid var(--border);border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">QB</button>
+      </div>
+      <div class="inp-row">
+        <div><label class="lbl">Kcal</label><input type="number" class="inp" id="inKcal" placeholder="250" inputmode="decimal"></div>
+        <div><label class="lbl">Proteine (g)</label><input type="number" class="inp" id="inProt" placeholder="10" inputmode="decimal"></div>
+      </div>
+      <div class="inp-row">
+        <div><label class="lbl">Carboidrati (g)</label><input type="number" class="inp" id="inCarb" placeholder="40" inputmode="decimal"></div>
+        <div><label class="lbl">Grassi (g)</label><input type="number" class="inp" id="inFat" placeholder="8" inputmode="decimal"></div>
+      </div>
     </div>
-    <div class="manual-toggle" id="manualToggle" onclick="toggleManual()">✏️ Inserimento manuale (alimento non trovato)</div>
-    <div class="manual-sec" id="manualSec">
-      <label class="lbl">Nome alimento</label><input type="text" class="inp" id="inName" placeholder="es. Pizza fatta in casa">
-      <label class="lbl">Quantità</label><input type="text" class="inp" id="inQtyFree" placeholder="es. 1 porzione, 2 fette...">
-      <div class="inp-row"><div><label class="lbl">Kcal</label><input type="number" class="inp" id="inKcal" placeholder="250" inputmode="decimal"></div><div><label class="lbl">Proteine (g)</label><input type="number" class="inp" id="inProt" placeholder="10" inputmode="decimal"></div></div>
-      <div class="inp-row"><div><label class="lbl">Carboidrati (g)</label><input type="number" class="inp" id="inCarb" placeholder="40" inputmode="decimal"></div><div><label class="lbl">Grassi (g)</label><input type="number" class="inp" id="inFat" placeholder="8" inputmode="decimal"></div></div>
+
+    <!-- TAB: Ricette -->
+    <div id="foodTab_ricette" style="display:none">
+      <div id="ricetteList"></div>
     </div>
-    <button class="btn-full btn-prim" style="margin-top:8px" onclick="saveFood()">Aggiungi al piano</button>
-    <button class="btn-full btn-sec" onclick="closeModal('modalFood')">Annulla</button>
+
+    <div id="foodModalActions" style="margin-top:8px">
+      <button class="btn-full btn-prim" id="btnSaveFood" onclick="saveFood()">Aggiungi al piano</button>
+      <button class="btn-full btn-sec" onclick="closeModal('modalFood')">Annulla</button>
+    </div>
   </div>
+</div>
+
+<!-- MODAL COPIA PASTO -->
+<div class="modal-bg" id="modalCopyPasto">
+  <div class="modal" id="modalCopyPastoContent"></div>
+</div>
+
+<!-- MODAL MODIFICA ALIMENTO -->
+<div class="modal-bg" id="modalEditFood">
+  <div class="modal" id="modalEditFoodContent"></div>
+</div>
+
+<!-- MODAL NUOVA RICETTA -->
+<div class="modal-bg" id="modalRicetta">
+  <div class="modal" id="modalRicettaContent" style="max-height:85vh;overflow-y:auto"></div>
 </div>
 
 <!-- NOTE -->
