@@ -1,3 +1,4 @@
+// BUILD: 20260701152349
 // DATABASE ALIMENTI — Valori per 100g
 // Fonte: etichette nutrizionali ufficiali dei produttori + CREA (ex INRAN)
 // Struttura: [nome, kcal, proteine, carboidrati, grassi, fibra, categoria]

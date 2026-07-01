@@ -1,3 +1,4 @@
+// BUILD: 20260701152349
 // ── FOOD INDEX ───────────────────────────────────────────────────────────────
 var FOOD_INDEX = FOOD_DB.map(function(f){
   return {name:f[0],kcal:f[1],p:f[2],c:f[3],fat:f[4],fiber:f[5]||0,cat:f[6],
@@ -933,49 +934,6 @@ function editFood(dayIdx, pId, foodIdx){
   setTimeout(function(){el('inName').focus();},300);
 }
 
-async function saveFood(){
-  var food=null;
-  if(S.selFood&&!S.manualOpen){
-    var mode=_currentQtyMode||'g';
-    var grams,qLabel;
-    if(mode==='qb'){
-      var f=S.selFood;
-      food={n:f.name,q:'q.b.',kcal:0,p:0,c:0,fat:0,fi:0};
-    } else if(mode==='pz'){
-      var nPz=parseFloat(el('inQtyPz').value)||1;
-      grams=Math.round(nPz*(S._pesoPerPezzo||1));
-      qLabel=nPz+' pz ('+grams+'g)';
-      var ratio=grams/100;var f=S.selFood;
-      food={n:f.name,q:qLabel,kcal:r(f.kcal*ratio),p:r(f.p*ratio,1),c:r(f.c*ratio,1),fat:r(f.fat*ratio,1),fi:r((f.fiber||0)*ratio,1)};
-    } else {
-      grams=parseFloat(el('inQtyG').value)||100;
-      var ratio=grams/100;var f=S.selFood;
-      food={n:f.name,q:grams+'g',kcal:r(f.kcal*ratio),p:r(f.p*ratio,1),c:r(f.c*ratio,1),fat:r(f.fat*ratio,1),fi:r((f.fiber||0)*ratio,1)};
-    }
-  }else{
-    var n=el('inName').value.trim();
-    if(!n){showToast('⚠️ Inserisci il nome');return;}
-    food={n:n,q:el('inQtyFree').value.trim()||'—',kcal:parseFloat(el('inKcal').value)||0,p:parseFloat(el('inProt').value)||0,c:parseFloat(el('inCarb').value)||0,fat:parseFloat(el('inFat').value)||0,fi:0};
-  }
-  var pat=ensureDieta(getPatientById(S.patientId));
-  if(S.editCtx.isAB){
-    // Salva nella dieta A o B
-    var tDieta=AB.editKey==='A'?pat.dietaA:pat.dietaB;
-    tDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
-    await updatePatient(pat);closeModal('modalFood');renderConfigAB();
-  } else {
-    var dietaKey=S.activeDietKey||'A';
-    var targetDieta=pat.configAB&&pat.configAB.enabled?(dietaKey==='B'?pat.dietaB:pat.dietaA):pat.dieta;
-    if(S.editCtx.editFoodIdx!==undefined){
-      targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId][S.editCtx.editFoodIdx]=food;
-      showToast('✅ '+food.n+' modificato!');
-    } else {
-      targetDieta.giorni[S.editCtx.dayIdx][S.editCtx.pId].push(food);
-      showToast('✅ '+food.n+' aggiunto!');
-    }
-    await updatePatient(pat);closeModal('modalFood');renderMeals();renderHeader();
-  }
-}
 function openNote(dayIdx,pId,pNome){
   S.editCtx={dayIdx:dayIdx,pId:pId};
   el('modalNoteTitle').textContent='📝 Nota per '+pNome;
@@ -2729,50 +2687,6 @@ function onPezziChange(){
 }
 
 // ── UPDATE selectFood to handle pezzi ─────────────────────────────────────────
-var _origSelectFood = selectFood;
-function selectFood(idx){
-  _origSelectFood(idx);
-  var f = FOOD_INDEX[idx];
-  var pw = getPesoUnitario(f.name);
-  // Show pezzi button only if food has known unit weight or is in pieces category
-  var cats = ['Frutta','Biscotti & Gallette','Dolci & Dessert','Frutta secca','Uova'];
-  var hasPw = !!pw || cats.some(function(c){return f.cat&&f.cat.includes(c.split(' ')[0]);});
-  el('btnModePezzi').style.display = hasPw?'block':'none';
-  el('pezzoInfo').textContent = pw ? '1 pezzo ≈ '+pw+'g' : '';
-  // Reset to grams mode
-  setQtyMode('g');
-}
-
-// ── UPDATE saveFood to handle pezzi/QB modes ──────────────────────────────────
-var _origSaveFood = saveFood;
-window._origSaveFood = _origSaveFood;
-function editFood(dayIdx, pId, foodIdx){
-  var pat=getPatientById(S.patientId);
-  var dieta=getDietaForWeek(pat, S.weekOffset);
-  var food=(dieta.giorni&&dieta.giorni[dayIdx]&&dieta.giorni[dayIdx][pId]&&dieta.giorni[dayIdx][pId][foodIdx]);
-  if(!food){showToast('Alimento non trovato');return;}
-  S.editCtx={dayIdx:dayIdx, pId:pId, editFoodIdx:foodIdx};
-  S.selFood=null; S.manualOpen=true; _currentQtyMode='free';
-  el('modalFoodTitle').textContent='✏️ Modifica — '+food.n;
-  el('btnSaveFood').textContent='Salva modifiche';
-  el('searchInp').value=''; el('searchClear').style.display='none';
-  closeSugg();
-  el('selFoodBox').classList.remove('vis');
-  el('qtySection').style.display='none';
-  // Pre-fill manual form
-  el('inName').value=food.n||'';
-  el('inQtyFree').value=food.q||'';
-  el('inKcal').value=food.kcal||0;
-  el('inProt').value=food.p||0;
-  el('inCarb').value=food.c||0;
-  el('inFat').value=food.fat||food.f||0;
-  setFoodTab('manuale');
-  el('manualSec').classList.add('open');
-  el('manualToggle').textContent='▲ Chiudi inserimento manuale';
-  openModal('modalFood');
-  setTimeout(function(){el('inName').focus();},300);
-}
-
 async function saveFood(){
   var food = null;
   if(_currentFoodTab === 'db' && S.selFood && _currentQtyMode !== 'qb'){
