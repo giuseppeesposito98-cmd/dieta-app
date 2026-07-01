@@ -1,4 +1,4 @@
-// BUILD: 20260701161606
+// BUILD: 20260701162022
 // ── FOOD INDEX ───────────────────────────────────────────────────────────────
 var FOOD_INDEX = FOOD_DB.map(function(f){
   return {name:f[0],kcal:f[1],p:f[2],c:f[3],fat:f[4],fiber:f[5]||0,cat:f[6],
@@ -1290,13 +1290,15 @@ function openABAddFood(pId,pNome){
   el('modalFoodTitle').textContent='➕ Dieta '+AB.editKey+' — '+GG_E[AB.editDay]+' — '+pNome;
   el('searchInp').value='';el('searchClear').style.display='none';
   closeSugg();
-  el('selFoodBox').classList.remove('vis');
-  el('qtySection').style.display='none';
-  el('btnSaveFood').textContent='Aggiungi al piano';
-  ['inName','inQtyFree','inKcal','inProt','inCarb','inFat'].forEach(function(id){el(id).value='';});
-  setFoodTab('db');
   openModal('modalFood');
-  setTimeout(function(){el('searchInp').focus();},350);
+  setTimeout(function(){
+    var sfb=el('selFoodBox');if(sfb)sfb.classList.remove('vis');
+    var qs=el('qtySection');if(qs)qs.style.display='none';
+    var bs=el('btnSaveFood');if(bs)bs.textContent='Aggiungi al piano';
+    ['inName','inQtyFree','inKcal','inProt','inCarb','inFat'].forEach(function(id){var e=el(id);if(e)e.value='';});
+    setFoodTab('db');
+    var si=el('searchInp');if(si)si.focus();
+  },50);
 }
 
 function openABNote(pId,pNome){
@@ -2746,11 +2748,12 @@ function openEditFood(dayIdx, pId, foodIdx, isAB){
   el('modalFoodTitle').textContent = '✏️ Modifica: '+food.n;
 
   // Reset modal state
-  el('searchInp').value=''; el('searchClear').style.display='none';
+  var si2=el('searchInp');if(si2)si2.value='';
+  var sc2=el('searchClear');if(sc2)sc2.style.display='none';
   closeSugg();
-  el('selFoodBox').classList.remove('vis');
-  el('qtySection').style.display='none';
-  el('manualSec').classList.remove('open');
+  var sfb3=el('selFoodBox');if(sfb3)sfb3.classList.remove('vis');
+  var qs3=el('qtySection');if(qs3)qs3.style.display='none';
+  var ms3=el('manualSec');if(ms3)ms3.classList.remove('open');
 
   // Open in manuale tab with values pre-filled
   setFoodTab('manuale');
