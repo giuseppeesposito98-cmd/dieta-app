@@ -1641,7 +1641,22 @@ document.addEventListener('click',function(e){
 var deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;var b=el('installBanner');if(b)b.classList.add('vis');});
 function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(function(r){deferredPrompt=null;var b=el('installBanner');if(b)b.classList.remove('vis');if(r.outcome==='accepted')showToast('✅ App installata!');});}
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(function(){});
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(function(reg){
+    reg.update();
+    reg.addEventListener('updatefound', function(){
+      var nw = reg.installing;
+      nw.addEventListener('statechange', function(){
+        if(nw.state==='installed' && navigator.serviceWorker.controller){
+          nw.postMessage('SKIP_WAITING');
+          navigator.serviceWorker.addEventListener('controllerchange', function(){
+            window.location.reload();
+          });
+        }
+      });
+    });
+  }).catch(function(){});
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 // ── DATI DI TEST ─────────────────────────────────────────────────────────────

@@ -1,11 +1,16 @@
-# Netlify headers — disabilita cache su tutti i file HTML e SW
-/index.html
+/*
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
+  Expires: 0
 
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
-  Pragma: no-cache
 
-/*
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/app.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/food-db.js
   Cache-Control: no-cache, no-store, must-revalidate
