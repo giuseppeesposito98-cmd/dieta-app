@@ -1,4 +1,4 @@
-// BUILD: 20260701160710
+// BUILD: 20260701161606
 // ── FOOD INDEX ───────────────────────────────────────────────────────────────
 var FOOD_INDEX = FOOD_DB.map(function(f){
   return {name:f[0],kcal:f[1],p:f[2],c:f[3],fat:f[4],fiber:f[5]||0,cat:f[6],
@@ -903,16 +903,18 @@ async function deleteAllData(){
 function openAddFood(dayIdx,pId,pNome){
   S.editCtx={dayIdx:dayIdx,pId:pId,editFoodIdx:undefined};
   S.selFood=null;S.manualOpen=false;_currentQtyMode='g';
-  el('modalFoodTitle').textContent='➕ '+pNome;
-  el('searchInp').value='';el('searchClear').style.display='none';
-  closeSugg();
-  el('selFoodBox').classList.remove('vis');
-  el('qtySection').style.display='none';
-  el('btnSaveFood').textContent='Aggiungi al piano';
-  ['inName','inQtyFree','inKcal','inProt','inCarb','inFat'].forEach(function(id){el(id).value='';});
-  setFoodTab('db');
   openModal('modalFood');
-  setTimeout(function(){el('searchInp').focus();},350);
+  setTimeout(function(){
+    var t=el('modalFoodTitle');if(t)t.textContent='➕ '+pNome;
+    var si=el('searchInp');if(si){si.value='';si.focus();}
+    var sc=el('searchClear');if(sc)sc.style.display='none';
+    closeSugg();
+    var sfb=el('selFoodBox');if(sfb)sfb.classList.remove('vis');
+    var qs=el('qtySection');if(qs)qs.style.display='none';
+    var bs=el('btnSaveFood');if(bs)bs.textContent='Aggiungi al piano';
+    ['inName','inQtyFree','inKcal','inProt','inCarb','inFat'].forEach(function(id){var e=el(id);if(e)e.value='';});
+    setFoodTab('db');
+  },50);
 }
 function editFood(dayIdx, pId, foodIdx){
   var pat=getPatientById(S.patientId);
@@ -1074,54 +1076,36 @@ function selectFood(idx){
   el('searchClear').style.display='block';
   el('selFoodName').textContent='✅ '+f.name;
   el('selFoodMacros').textContent='Per 100g: '+f.kcal+' kcal | P '+f.p+'g | C '+f.c+'g | G '+f.fat+'g'+(f.fiber?' | Fi '+f.fiber+'g':'');
-  el('selFoodBox').classList.add('vis');
-  el('qtySection').style.display='block';
+  var sfb2=el('selFoodBox');if(sfb2)sfb2.classList.add('vis');
+  var qs2=el('qtySection');if(qs2)qs2.style.display='block';
 
-  // Detect if this food can be measured by pieces
+  // Rileva se alimento misurabile a pezzi e configura modal
   var pesoP = getPesoPerPezzo(f.name);
   S._pesoPerPezzo = pesoP;
-
-  // Build qty tabs
-  var tabsHtml = '<div class="qty-tabs">'
-    +'<div class="qty-tab active" id="qtab-g" onclick="setQtyTab_g()">Grammi</div>'
-    +(pesoP?'<div class="qty-tab" id="qtab-pz" onclick="setQtyTab_pz()">Pezzi ('+pesoP+'g/pz)</div>':'')
-    +'<div class="qty-tab" id="qtab-qb" onclick="setQtyTab_qb()">QB</div>'
-    +'</div>';
-
-  var grammiHtml = '<div id="qpanel-g">'
-    +'<div class="qty-presets-wrap">'
-    +['30g','50g','100g','120g','150g','200g','250g'].map(function(p){
-      return '<div class="qty-preset" onclick="setQtyPreset(\''+p+'\')">'+p+'</div>';
-    }).join('')
-    +'</div>'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'
-    +'<input type="number" class="inp" id="inQtyG" value="100" min="1" max="9999" oninput="onQtyChange()" style="flex:1;margin:0">'
-    +'<span style="font-size:13px;color:var(--text-sec)">grammi</span>'
-    +'</div></div>';
-
-  var pezziHtml = pesoP ? '<div id="qpanel-pz" style="display:none">'
-    +'<div style="font-size:12px;color:var(--text-sec);margin-bottom:8px">1 pezzo = '+pesoP+'g</div>'
-    +'<div class="qty-presets-wrap">'
-    +[1,2,3,4,5,6,8,10].map(function(n){
-      return '<div class="qty-preset" onclick="setQtyPezzi('+n+')">'+n+' pz</div>';
-    }).join('')
-    +'</div>'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'
-    +'<input type="number" class="inp" id="inQtyPz" value="1" min="1" max="99" oninput="onPzChange()" style="flex:1;margin:0">'
-    +'<span style="font-size:13px;color:var(--text-sec)">pezzi = </span>'
-    +'<span id="pzGrammi" style="font-size:13px;font-weight:700;color:var(--blue)">'+pesoP+'g</span>'
-    +'</div></div>' : '';
-
-  var qbHtml = '<div id="qpanel-qb" style="display:none">'
-    +'<div style="padding:14px;background:var(--green-l);border-radius:var(--rs);text-align:center">'
-    +'<div style="font-size:22px;margin-bottom:4px">⚖️</div>'
-    +'<div style="font-size:13px;font-weight:700;color:var(--green-d)">Quanto Basta</div>'
-    +'<div style="font-size:12px;color:var(--green-d);margin-top:4px">I valori nutrizionali non verranno calcolati. Utile per spezie, condimenti, acqua.</div>'
-    +'</div></div>';
-
-  el('qtySection').innerHTML = tabsHtml + grammiHtml + pezziHtml + qbHtml;
   _currentQtyMode = 'g';
-  if(S.manualOpen)toggleManual();
+
+  // Usa la struttura HTML esistente del modal
+  var btnPz = el('btnModePezzi');
+  if(btnPz){
+    if(pesoP){
+      btnPz.style.display = '';
+      btnPz.textContent = 'Pezzi ('+pesoP+'g/pz)';
+      var pi = el('pezzoInfo');
+      if(pi) pi.textContent = '1 pezzo = '+pesoP+'g';
+    } else {
+      btnPz.style.display = 'none';
+    }
+  }
+  // Reset a grammi
+  setQtyMode('g');
+  var inG = el('inQtyG'); if(inG) inG.value = '100';
+  var qp = el('qtyPresets');
+  if(qp){
+    qp.innerHTML = ['30g','50g','100g','120g','150g','200g','250g'].map(function(p){
+      return '<div class="qty-preset" onclick="setQtyPreset(\''+p+'\')">'+p+'</div>';
+    }).join('');
+  }
+  if(S.manualOpen) toggleManual();
 }
 
 function setQtyTab_g(){setQtyTab('g');}
@@ -1152,15 +1136,16 @@ function setQtyPreset(p){
 }
 function onQtyChange(){document.querySelectorAll('.qty-preset').forEach(function(e){e.classList.remove('active');});}
 function clearSearch(){
-  el('searchInp').value='';el('searchClear').style.display='none';
+  var si=el('searchInp');if(si){si.value='';si.focus();}
+  var sc=el('searchClear');if(sc)sc.style.display='none';
   closeSugg();S.selFood=null;
-  el('selFoodBox').classList.remove('vis');el('qtySection').style.display='none';
-  el('searchInp').focus();
+  var sfb=el('selFoodBox');if(sfb)sfb.classList.remove('vis');
+  var qs=el('qtySection');if(qs)qs.style.display='none';
 }
 function toggleManual(){
   S.manualOpen=!S.manualOpen;
-  el('manualSec').classList.toggle('open',S.manualOpen);
-  el('manualToggle').textContent=S.manualOpen?'▲ Chiudi inserimento manuale':'✏️ Inserimento manuale (alimento non trovato)';
+  var ms=el('manualSec');if(ms)ms.classList.toggle('open',S.manualOpen);
+  var mt=el('manualToggle');if(mt)mt.textContent=S.manualOpen?'▲ Chiudi inserimento manuale':'✏️ Inserimento manuale (alimento non trovato)';
 }
 
 // ── CONFIG DIETA A/B ─────────────────────────────────────────────────────────
